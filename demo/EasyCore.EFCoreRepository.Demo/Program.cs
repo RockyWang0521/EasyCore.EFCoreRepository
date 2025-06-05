@@ -14,8 +14,9 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
-
             builder.Services.AddDbContext<TestDbContext>();
+
+            // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
 
             var app = builder.Build();
