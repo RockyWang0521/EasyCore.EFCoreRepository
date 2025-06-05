@@ -25,13 +25,17 @@ namespace EasyCore.EFCoreRepository
 
             var rootDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-            var dlls = Directory.GetFiles(rootDirectory, "*.dll");
+            string[] dllFiles = Directory.GetFiles(rootDirectory, "*.dll", SearchOption.TopDirectoryOnly).Where(path =>
+            {
+                string fileName = Path.GetFileName(path);
+                return !(fileName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) || fileName.StartsWith("System.", StringComparison.OrdinalIgnoreCase));
+            }).ToArray();
 
             var repoImplBaseType = typeof(EfCoreRepository<,>);
 
             var repoInterfaceType = typeof(IEfCoreRepository<>);
 
-            foreach (var dll in dlls)
+            foreach (var dll in dllFiles)
             {
                 try
                 {
