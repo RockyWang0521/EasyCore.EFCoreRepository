@@ -1,4 +1,4 @@
-﻿using EasyCore.EFCoreRepository.Entity;
+﻿using EasyCore.EFCoreRepository.EntityBase;
 
 namespace EasyCore.EFCoreRepository.DataFilter.Tenant
 {

@@ -1,4 +1,4 @@
-﻿using EasyCore.EFCoreRepository.Entity;
+﻿using EasyCore.EFCoreRepository.EntityBase;
 using EasyCore.EFCoreRepository.IRepository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -77,7 +77,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
         }
 
@@ -89,7 +89,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
         }
 
@@ -120,7 +120,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.SaveChanges();
         }
 
         public virtual void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
@@ -181,7 +181,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
         }
 
@@ -426,7 +426,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
 
             return savedEntity;
@@ -488,7 +488,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
         }
 
@@ -530,7 +530,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
 
             return entity;
@@ -584,7 +584,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                dbContext.SaveChanges();
             }
         }
 

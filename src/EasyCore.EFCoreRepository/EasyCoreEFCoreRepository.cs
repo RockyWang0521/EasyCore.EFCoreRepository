@@ -9,9 +9,9 @@ using System.Reflection;
 
 namespace EasyCore.EFCoreRepository
 {
-    public static class AppRepository
+    public static class EFCoreRepository
     {
-        public static void AddAppRepositorys(this IServiceCollection services)
+        public static void EasyCoreEFCoreRepository(this IServiceCollection services)
         {
             var registeredDbContexts = services.Where(d => typeof(DbContext).IsAssignableFrom(d.ServiceType)).Select(d => d.ServiceType).ToHashSet();
 

@@ -1,4 +1,4 @@
-﻿using EasyCore.EFCoreRepository.Entity;
+﻿using EasyCore.EFCoreRepository.EntityBase;
 using Microsoft.AspNetCore.Http;
 
 namespace EasyCore.EFCoreRepository.DataFilter.Tenant
