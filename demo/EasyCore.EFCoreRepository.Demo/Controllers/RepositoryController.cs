@@ -23,5 +23,23 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         {
             await _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Guid = Guid.NewGuid() }, true);
         }
+
+        [HttpPut]
+        public async void Put()
+        {
+            var entity = await _repository.GetAsync(e => e.Name == "Test");
+
+            entity.Age = 20;
+
+            await _repository.UpdateAsync(entity, true);
+        }
+
+        [HttpDelete]
+        public async void Delete()
+        {
+            var entity = await _repository.GetAsync(e => e.Age == 20);
+
+            await _repository.DeleteAsync(entity, true);
+        }
     }
 }
