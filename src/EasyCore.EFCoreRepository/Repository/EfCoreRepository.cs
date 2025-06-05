@@ -77,7 +77,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -89,7 +89,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -120,7 +120,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
-            dbContext.SaveChanges();
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         public virtual void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
@@ -181,7 +181,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -426,7 +426,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
 
             return savedEntity;
@@ -488,7 +488,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
@@ -530,7 +530,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
 
             return entity;
@@ -584,7 +584,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (autoSave)
             {
-                dbContext.SaveChanges();
+                await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
