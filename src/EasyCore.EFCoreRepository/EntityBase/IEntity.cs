@@ -1,4 +1,4 @@
-﻿namespace EasyCore.EFCoreRepository.Entity
+﻿namespace EasyCore.EFCoreRepository.EntityBase
 {
     /// <summary>
     /// 仓储基类

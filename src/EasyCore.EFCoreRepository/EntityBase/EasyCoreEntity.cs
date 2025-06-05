@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace EasyCore.EFCoreRepository.Entity
+namespace EasyCore.EFCoreRepository.EntityBase
 {
     public class EasyCoreEntity : IEntity, IEntityConcurrencyCheck, IEntitySoftDelete, IEntityTenant
     {

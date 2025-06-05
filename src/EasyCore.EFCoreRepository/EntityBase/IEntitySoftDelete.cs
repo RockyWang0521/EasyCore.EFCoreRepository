@@ -1,4 +1,4 @@
-﻿namespace EasyCore.EFCoreRepository.Entity
+﻿namespace EasyCore.EFCoreRepository.EntityBase
 {
     public interface IEntitySoftDelete
     {
