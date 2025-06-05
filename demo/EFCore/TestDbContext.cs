@@ -15,7 +15,6 @@ namespace EFCoreDbContext.EntityFrameworkCore.EFDbContext
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
-                .UseLazyLoadingProxies()
                 .UseSqlServer("Server=192.168.157.142;Database=Demo;User Id=sa;Password=Sa123456;TrustServerCertificate=True;Connect Timeout=10;")
                 .UseLoggerFactory(LoggerFactory.Create(option =>
                 {

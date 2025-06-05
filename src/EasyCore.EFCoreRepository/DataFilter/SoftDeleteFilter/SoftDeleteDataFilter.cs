@@ -1,6 +1,6 @@
 ﻿using EasyCore.EFCoreRepository.EntityBase;
 
-namespace EasyCore.EFCoreRepository.DataFilter.SoftDelete
+namespace EasyCore.EFCoreRepository.DataFilter.SoftDeleteFilter
 {
     /// <summary>
     /// 软删除数据过滤器

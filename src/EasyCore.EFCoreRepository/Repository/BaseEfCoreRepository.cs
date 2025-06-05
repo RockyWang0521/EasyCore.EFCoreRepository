@@ -1,5 +1,5 @@
-﻿using EasyCore.EFCoreRepository.DataFilter.SoftDelete;
-using EasyCore.EFCoreRepository.DataFilter.Tenant;
+﻿using EasyCore.EFCoreRepository.DataFilter.SoftDeleteFilter;
+using EasyCore.EFCoreRepository.DataFilter.TenantFilter;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasyCore.EFCoreRepository.Repository

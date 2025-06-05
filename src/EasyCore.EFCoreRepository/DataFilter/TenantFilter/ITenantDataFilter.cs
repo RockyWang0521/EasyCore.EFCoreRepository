@@ -1,6 +1,6 @@
 ﻿using EasyCore.EFCoreRepository.EntityBase;
 
-namespace EasyCore.EFCoreRepository.DataFilter.Tenant
+namespace EasyCore.EFCoreRepository.DataFilter.TenantFilter
 {
     /// <summary>
     /// 多租户数据过滤器接口

@@ -1,4 +1,5 @@
-﻿using EFCore.Repository;
+﻿using EFCore.Entity;
+using EFCore.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EasyCore.EFCoreRepository.Demo.Controllers
@@ -11,6 +12,11 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
 
         public RepositoryController(ITestEntityRepository repository) => _repository = repository;
 
+        [HttpGet]
+        public async Task<TestEntity> Get()
+        {
+            return await _repository.GetAsync(e => e.Name == "Test");
+        }
 
         [HttpPost]
         public async void Post()

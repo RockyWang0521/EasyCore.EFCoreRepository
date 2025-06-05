@@ -1,7 +1,7 @@
 ﻿using EasyCore.EFCoreRepository.EntityBase;
 using Microsoft.AspNetCore.Http;
 
-namespace EasyCore.EFCoreRepository.DataFilter.Tenant
+namespace EasyCore.EFCoreRepository.DataFilter.TenantFilter
 {
     /// <summary>
     /// 多租户数据过滤器
