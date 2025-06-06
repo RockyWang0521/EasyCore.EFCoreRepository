@@ -127,6 +127,16 @@ EasyCore.EFCoreRepository 提供了一个仓储基类 EfCoreRepository<TDbContex
  }
 ```
 
+5.WhereIf支持
+
+EasyCore.EFCoreRepository提供一个IQueryable<T>.WhereIf的支持。
+
+
+```
+ IQueryable<T>.WhereIf(xxx!= null, x => x.xxx == xxx)
+```
+上述代码中只有 xxx!= null 时，才会执行 x => x.xxx == xxx 否则继续执行后面的代码。
+
 EasyCore.EFCoreRepository就可以自动实现实体的CURD操作。
 
 
