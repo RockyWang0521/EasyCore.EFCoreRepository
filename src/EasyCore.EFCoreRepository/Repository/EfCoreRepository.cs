@@ -30,11 +30,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
-            var entities = query.Where(predicate).ToList();
+            var entities = query.ToList();
 
             DeleteMany(entities, autoSave);
 
@@ -67,11 +67,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
-            var entities = query.Where(predicate).ToList();
+            var entities = query.ToList();
 
             await DeleteManyAsync(entities, autoSave, cancellationToken);
 
@@ -97,11 +97,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
-            var entities = query.Where(predicate).ToList();
+            var entities = query.ToList();
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
@@ -112,11 +112,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
-            var entities = query.Where(predicate).ToList();
+            var entities = query.ToList();
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
@@ -247,13 +247,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
             query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            query.Where(predicate);
 
             return query.Count();
         }
@@ -262,13 +260,11 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
             query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
 
             query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            query.Where(predicate);
 
             return await query.CountAsync(cancellationToken);
         }
