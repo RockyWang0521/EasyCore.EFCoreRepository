@@ -3,11 +3,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace EFCore.Entity
 {
-    public class TestEntity : EasyCoreEntity
+    public class TestEntity : EasyCoreEntity<Guid>
     {
-        [Key]
-        public Guid Guid { get; set; }
-
         public string Name { get; set; }
 
         public int Age { get; set; }

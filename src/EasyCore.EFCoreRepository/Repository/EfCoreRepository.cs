@@ -418,7 +418,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
 
-            if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted =false;
+            if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
             if (autoSave)
             {
@@ -495,10 +495,14 @@ namespace EasyCore.EFCoreRepository.Repository
             if (dbContext.Set<TEntity>().Local.All(e => e != entity))
             {
                 dbContext.Set<TEntity>().Attach(entity);
+
                 dbContext.Update(entity);
             }
 
-            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            if (dbContext.Entry(entity).State == EntityState.Modified)
+            {
+                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
 
@@ -517,10 +521,14 @@ namespace EasyCore.EFCoreRepository.Repository
             if (dbContext.Set<TEntity>().Local.All(e => e != entity))
             {
                 dbContext.Set<TEntity>().Attach(entity);
+
                 dbContext.Update(entity);
             }
 
-            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            if (dbContext.Entry(entity).State == EntityState.Modified)
+            {
+                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
 
@@ -548,6 +556,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             TDbContext dbContext = GetDbContext();
 
+            if (dbContext.Entry(entities).State == EntityState.Modified)
+            {
+                if (entities is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            }
+
             if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
 
             dbContext.Set<TEntity>().UpdateRange(entityArray);
@@ -573,6 +586,11 @@ namespace EasyCore.EFCoreRepository.Repository
             }
 
             TDbContext dbContext = GetDbContext();
+
+            if (dbContext.Entry(entities).State == EntityState.Modified)
+            {
+                if (entities is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            }
 
             if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
 

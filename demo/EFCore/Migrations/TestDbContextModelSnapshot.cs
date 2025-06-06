@@ -28,7 +28,7 @@ namespace EFCore.Migrations
 
             modelBuilder.Entity("EFCore.Entity.TestEntity", b =>
                 {
-                    b.Property<Guid>("Guid")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
