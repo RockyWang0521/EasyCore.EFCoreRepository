@@ -19,9 +19,6 @@ namespace EFCore.Migrations
             modelBuilder
                 .UseCollation("Chinese_PRC_CI_AS")
                 .HasAnnotation("ProductVersion", "8.0.8")
-                .HasAnnotation("Proxies:ChangeTracking", false)
-                .HasAnnotation("Proxies:CheckEquality", false)
-                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -50,7 +47,7 @@ namespace EFCore.Migrations
                     b.Property<string>("TenantId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Guid");
+                    b.HasKey("Id");
 
                     b.ToTable("TestEntity", (string)null);
                 });
