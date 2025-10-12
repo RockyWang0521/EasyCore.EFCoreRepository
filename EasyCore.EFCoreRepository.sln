@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyCore.EFCoreRepository.D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DbMigrator", "DbMigrator\DbMigrator.csproj", "{49780818-6158-499E-9111-5F2F543D4CEE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EasyCore.EFCoreUnitOfWork", "src\EasyCore.EFCoreUnitOfWork\EasyCore.EFCoreUnitOfWork.csproj", "{3C786E08-F81B-4321-8369-B970D0D1159F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,6 +39,10 @@ Global
 		{49780818-6158-499E-9111-5F2F543D4CEE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{49780818-6158-499E-9111-5F2F543D4CEE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{49780818-6158-499E-9111-5F2F543D4CEE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3C786E08-F81B-4321-8369-B970D0D1159F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3C786E08-F81B-4321-8369-B970D0D1159F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3C786E08-F81B-4321-8369-B970D0D1159F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3C786E08-F81B-4321-8369-B970D0D1159F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -46,6 +52,7 @@ Global
 		{D59F2C3B-8727-4A18-969B-84ED210A061A} = {ED6B87EB-3428-47F6-8391-D1973DAD1DFC}
 		{00CC80FF-AA14-4935-8AA8-00D882C2E91B} = {ED6B87EB-3428-47F6-8391-D1973DAD1DFC}
 		{49780818-6158-499E-9111-5F2F543D4CEE} = {ED6B87EB-3428-47F6-8391-D1973DAD1DFC}
+		{3C786E08-F81B-4321-8369-B970D0D1159F} = {C2D49FCF-804B-4D11-AAA5-E9F1D61E1A4E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {1BDB2D7C-36CD-492E-8DC8-C408526FB358}

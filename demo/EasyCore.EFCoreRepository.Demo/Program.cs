@@ -1,6 +1,6 @@
 using EasyCore.Dependencie;
-
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
+using EasyCore.EFCoreUnitOfWork;
 
 namespace EasyCore.EFCoreRepository.Demo
 {
@@ -18,6 +18,8 @@ namespace EasyCore.EFCoreRepository.Demo
 
             // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
+            // Use EasyCore EFCore UnitOfWork
+            builder.Services.EasyCoreEFCoreUnitOfWork();
 
             var app = builder.Build();
 
