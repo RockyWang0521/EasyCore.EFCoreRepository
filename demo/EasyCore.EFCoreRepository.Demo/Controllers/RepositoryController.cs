@@ -31,7 +31,7 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
 
             entity.Age = 20;
 
-            await _repository.UpdateAsync(entity, false);
+            await _repository.UpdateAsync(entity, true);
         }
 
         [HttpDelete]
