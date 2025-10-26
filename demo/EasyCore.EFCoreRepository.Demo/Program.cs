@@ -18,6 +18,7 @@ namespace EasyCore.EFCoreRepository.Demo
 
             // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
+
             // Use EasyCore EFCore UnitOfWork
             builder.Services.EasyCoreEFCoreUnitOfWork();
 
