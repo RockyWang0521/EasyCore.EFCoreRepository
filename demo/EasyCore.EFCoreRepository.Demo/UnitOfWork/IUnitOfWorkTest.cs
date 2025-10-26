@@ -25,11 +25,5 @@ namespace EasyCore.EFCoreRepository.Demo.UnitOfWork
         /// </summary>
         /// <returns></returns>
         Task<TestEntity> EntityUnitOfWork();
-
-        /// <summary>
-        /// Test the transaction unit of work.
-        /// </summary>
-        /// <returns></returns>
-        Task<TestEntity> Transaction();
     }
 }

@@ -32,7 +32,5 @@ namespace EasyCore.EFCoreRepository.Demo.UnitOfWork
         public UnitOfWorkTest2(ITestEntityRepository repository) => _repository = repository;
 
         public Task<TestEntity> EntityUnitOfWork() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
-
-        public Task<TestEntity> Transaction() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
     }
 }

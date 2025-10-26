@@ -25,8 +25,5 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
 
         [HttpPost("/UnitOfWork2")]
         public async Task<TestEntity> UnitOfWork2() => await _unitOfWork2.EntityUnitOfWork();
-
-        [HttpPost("/transaction2")]
-        public async Task<TestEntity> Transaction2() => await _unitOfWork2.Transaction();
     }
 }
