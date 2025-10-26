@@ -137,6 +137,112 @@ EasyCore.EFCoreRepository提供一个IQueryable<T>.WhereIf的支持。
 
 EasyCore.EFCoreRepository就可以自动实现实体的CURD操作。
 
+### EasyCore.EFCoreUnitOfWork
+
+EasyCore.EFCoreUnitOfWork 提供了一个SaveChangesAttribute特性，需要保存至数据库操作的方法或类加上SaveChangesAttribute特性，数据即可自动保存至数据库中。
+
+1.Program注册
+
+```
+ public class Program
+ {
+     public static void Main(string[] args)
+     {
+         var builder = WebApplication.CreateBuilder(args);
+
+         builder.Services.AddControllers();
+         builder.Services.AddEndpointsApiExplorer();
+         builder.Services.AddSwaggerGen();
+         builder.Services.EasyCoreDependencie();
+         builder.Services.AddDbContext<TestDbContext>();
+
+         // Use EasyCore EFCore Repository
+         builder.Services.EasyCoreEFCoreRepository();
+         // Use EasyCore EFCore UnitOfWork
+         builder.Services.EasyCoreEFCoreUnitOfWork();
+
+         var app = builder.Build();
+
+         if (app.Environment.IsDevelopment())
+         {
+             app.UseSwagger();
+             app.UseSwaggerUI();
+         }
+
+         app.UseAuthorization();
+
+
+         app.MapControllers();
+
+         app.Run();
+     }
+ }
+```
+2.抽象接口
+
+```
+    public interface IUnitOfWorkTest : ITransientDependencie
+    {
+        /// <summary>
+        /// Test the entity unit of work.
+        /// </summary>
+        /// <returns></returns>
+        Task<TestEntity> EntityUnitOfWork();
+
+        /// <summary>
+        /// Test the transaction unit of work.
+        /// </summary>
+        /// <returns></returns>
+        Task<TestEntity> Transaction();
+    }
+
+    public interface IUnitOfWorkTest2 : ITransientDependencie
+    {
+        /// <summary>
+        /// Test the entity unit of work.
+        /// </summary>
+        /// <returns></returns>
+        Task<TestEntity> EntityUnitOfWork();
+    }
+```
+
+3.类或方法上继承 SaveChangesAttribute特性
+
+```
+/// <summary>
+/// Attributes on methods.
+/// </summary>
+public class UnitOfWorkTest : IUnitOfWorkTest
+{
+    private readonly ITestEntityRepository _repository;
+
+    public UnitOfWorkTest(ITestEntityRepository repository) => _repository = repository;
+
+    [SaveChanges(typeof(TestDbContext))]
+    public Task<TestEntity> EntityUnitOfWork() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+
+    [SaveChanges(true, typeof(TestDbContext))]
+    public Task<TestEntity> Transaction() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+}
+
+/// <summary>
+/// Attributes on class.
+/// </summary>
+[SaveChanges(typeof(TestDbContext))]
+public class UnitOfWorkTest2 : IUnitOfWorkTest2
+{
+    private readonly ITestEntityRepository _repository;
+
+    public UnitOfWorkTest2(ITestEntityRepository repository) => _repository = repository;
+
+    public Task<TestEntity> EntityUnitOfWork() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+}
+```
+
+ [SaveChanges(true, typeof(TestDbContext))] 特性中，第一个参数表示是否为数据库事务，为True时执行事务保存。第二个参数为所保存数据库的DbContext对象。
+
+
+
 
 
 
