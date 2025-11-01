@@ -8,7 +8,7 @@ namespace EasyCore.EFCoreEntityChange
 {
     public static class EFCoreEntityChange
     {
-        public static void EasyCoreEFCoreEntityChange<TContext>(this IServiceCollection services) where TContext : DbContext
+        public static void EasyCoreEFCoreEntityChange(this IServiceCollection services)
         {
             services.AddScoped<IInterceptor, EntityChangeInterceptor>();
 
@@ -62,5 +62,7 @@ namespace EasyCore.EFCoreEntityChange
                 }
             }
         }
+
+        public static void UseEasyCoreEFCoreEntityChange(this DbContextOptionsBuilder builder, IServiceCollection services) => builder.AddInterceptors(new EntityChangeInterceptor(services.BuildServiceProvider()));
     }
 }

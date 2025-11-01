@@ -18,7 +18,7 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.EasyCoreDependencie();
             builder.Services.AddDbContext<TestDbContext>(op =>
             {
-                op.AddInterceptors(new EntityChangeInterceptor(builder.Services.BuildServiceProvider())); // Add EntityChangeInterceptor
+                op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
             });
 
             // Use EasyCore EFCore Repository
@@ -28,7 +28,7 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.EasyCoreEFCoreUnitOfWork();
 
             // Use EasyCore Entity Change
-            builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
+            builder.Services.EasyCoreEFCoreEntityChange();
 
             var app = builder.Build();
 

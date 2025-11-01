@@ -41,6 +41,8 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         {
             var entity = await _repository.GetAsync(e => e.Age == 20);
 
+            if (entity == null) return;
+
             entity.IsDeleted = true;
 
             await _repository.UpdateAsync(entity, true);
