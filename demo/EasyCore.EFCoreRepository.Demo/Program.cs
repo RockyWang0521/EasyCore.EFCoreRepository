@@ -3,7 +3,6 @@ using EasyCore.EFCoreEntityChange;
 using EasyCore.EFCoreEntityChange.EntityChange;
 using EasyCore.EFCoreUnitOfWork;
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
-using Microsoft.Extensions.Options;
 
 namespace EasyCore.EFCoreRepository.Demo
 {
