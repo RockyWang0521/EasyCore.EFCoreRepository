@@ -241,6 +241,60 @@ public class UnitOfWorkTest2 : IUnitOfWorkTest2
 
  [SaveChanges(true, typeof(TestDbContext))] 特性中，第一个参数表示是否为数据库事务，为True时执行事务保存。第二个参数为所保存数据库的DbContext对象。
 
+### EasyCore.EFCoreEntityChange
+
+EasyCore.EFCoreEntityChange 提供了实体变更追踪。
+
+1.Program注册
+
+```
+  builder.Services.AddDbContext<TestDbContext>(op =>
+  {
+      op.AddInterceptors(new EntityChangeInterceptor(builder.Services.BuildServiceProvider())); // Add EntityChangeInterceptor
+  });
+
+  // Use EasyCore Entity Change
+  builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
+```
+
+2.使用实体追踪
+
+```
+   public class EntityChange : IEntityUpdatedChangeHandler<TestEntity, TestEntity>, IEntityDeletedChangeHandler<TestEntity>, IEntityAddedChangeHandler<TestEntity>
+   {
+       private readonly ILogger<EntityChange> _logger;
+
+       public EntityChange(ILogger<EntityChange> logger) => _logger = logger;
+
+       public async Task OnAddedAsync(TestEntity entity)
+       {
+           _logger.LogInformation($"Entity added: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
+
+           await Task.CompletedTask;
+       }
+
+       public async Task OnDeletedAsync(TestEntity entity)
+       {
+           _logger.LogInformation($"Entity deleted: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
+
+           await Task.CompletedTask;
+       }
+
+       public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
+       {
+           _logger.LogInformation($"Entity updated: Id:{oldEntity.Id} --> Id:{currentEntity.Id}; Name:{oldEntity.Name} --> Name:{currentEntity.Name};Age:{oldEntity.Age} --> Age:{currentEntity.Age};");
+
+           return Task.CompletedTask;
+       }
+   }
+```
+EasyCore.EFCoreEntityChange 提供了三个接口 IEntityAddedChangeHandler<TEntity>， IEntityDeletedChangeHandler<TEntity> ，IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> 分别对应实体的增删改。
+
+当实体增删改完成时，就会自动调用并执行接口方法。
+
+
+
+
 
 
 
