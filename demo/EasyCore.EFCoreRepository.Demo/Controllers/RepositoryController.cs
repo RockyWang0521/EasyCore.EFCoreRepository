@@ -29,6 +29,8 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         {
             var entity = await _repository.GetAsync(e => e.Name == "Test");
 
+            if (entity == null) return;
+
             entity.Age = 20;
 
             await _repository.UpdateAsync(entity, true);
