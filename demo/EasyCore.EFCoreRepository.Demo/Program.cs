@@ -1,6 +1,9 @@
 using EasyCore.Dependencie;
-using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
+using EasyCore.EFCoreEntityChange;
+using EasyCore.EFCoreEntityChange.EntityChange;
 using EasyCore.EFCoreUnitOfWork;
+using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
+using Microsoft.Extensions.Options;
 
 namespace EasyCore.EFCoreRepository.Demo
 {
@@ -14,13 +17,19 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
-            builder.Services.AddDbContext<TestDbContext>();
+            builder.Services.AddDbContext<TestDbContext>(op =>
+            {
+                op.AddInterceptors(new EntityChangeInterceptor(builder.Services.BuildServiceProvider())); // Add EntityChangeInterceptor
+            });
 
             // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
 
             // Use EasyCore EFCore UnitOfWork
             builder.Services.EasyCoreEFCoreUnitOfWork();
+
+            // Use EasyCore Entity Change
+            builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
 
             var app = builder.Build();
 
