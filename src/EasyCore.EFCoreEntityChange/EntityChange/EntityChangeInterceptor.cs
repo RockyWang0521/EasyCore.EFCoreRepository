@@ -7,7 +7,7 @@ namespace EasyCore.EFCoreEntityChange.EntityChange
     /// <summary>
     /// Entity change interceptor.
     /// </summary>
-    public class EntityChangeInterceptor : SaveChangesInterceptor
+    internal class EntityChangeInterceptor : SaveChangesInterceptor
     {
         private readonly IServiceProvider _serviceProvider;
 
