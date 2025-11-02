@@ -1,6 +1,5 @@
 using EasyCore.Dependencie;
 using EasyCore.EFCoreEntityChange;
-using EasyCore.EFCoreEntityChange.EntityChange;
 using EasyCore.EFCoreUnitOfWork;
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
 
