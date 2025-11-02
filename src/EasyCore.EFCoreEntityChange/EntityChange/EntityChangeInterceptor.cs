@@ -34,11 +34,21 @@ namespace EasyCore.EFCoreEntityChange.EntityChange
 
                     var handlers = _serviceProvider.GetServices(handlerType);
 
+
                     foreach (var handler in handlers)
                     {
-                        await (Task)handlerType
-                            .GetMethod(nameof(IEntityAddedChangeHandler<object>.OnAddedAsync))!
-                            .Invoke(handler, new[] { entry.Entity })!;
+                        try
+                        {
+                            await (Task)handlerType
+                                .GetMethod(nameof(IEntityAddedChangeHandler<object>.OnAddedAsync))!
+                                .Invoke(handler, new[] { entry.Entity })!;
+                        }
+                        catch
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"fail: {DateTime.Now} Error while invoking entity added change handler.");
+                            Console.ResetColor();
+                        }
                     }
                 }
 
@@ -54,9 +64,18 @@ namespace EasyCore.EFCoreEntityChange.EntityChange
 
                         var originalEntity = entry.OriginalValues.ToObject();
 
-                        await (Task)handlerType
-                            .GetMethod(nameof(IEntityUpdatedChangeHandler<object, object>.OnUpdatedAsync))!
-                            .Invoke(handler, new[] { originalEntity, currentEntity })!;
+                        try
+                        {
+                            await (Task)handlerType
+                               .GetMethod(nameof(IEntityUpdatedChangeHandler<object, object>.OnUpdatedAsync))!
+                               .Invoke(handler, new[] { originalEntity, currentEntity })!;
+                        }
+                        catch
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"fail: {DateTime.Now} Error while invoking entity updated change handler.");
+                            Console.ResetColor();
+                        }
                     }
                 }
 
@@ -68,9 +87,18 @@ namespace EasyCore.EFCoreEntityChange.EntityChange
 
                     foreach (var handler in handlers)
                     {
-                        await (Task)handlerType
-                            .GetMethod(nameof(IEntityDeletedChangeHandler<object>.OnDeletedAsync))!
-                            .Invoke(handler, new[] { entry.Entity })!;
+                        try
+                        {
+                            await (Task)handlerType
+                                .GetMethod(nameof(IEntityDeletedChangeHandler<object>.OnDeletedAsync))!
+                                .Invoke(handler, new[] { entry.Entity })!;
+                        }
+                        catch
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine($"fail: {DateTime.Now} Error while invoking entity deleted change handler.");
+                            Console.ResetColor();
+                        }
                     }
                 }
             }

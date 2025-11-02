@@ -14,6 +14,8 @@ namespace EasyCore.EFCoreRepository.Demo.EntityChange
             _logger.LogInformation($"Entity added: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
 
             await Task.CompletedTask;
+
+            throw new Exception("Simulated exception in OnDeletedAsync");
         }
 
         public async Task OnDeletedAsync(TestEntity entity)
