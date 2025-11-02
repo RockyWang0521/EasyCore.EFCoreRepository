@@ -248,13 +248,13 @@ EasyCore.EFCoreEntityChange 提供了实体变更追踪。
 1.Program注册
 
 ```
-  builder.Services.AddDbContext<TestDbContext>(op =>
-  {
-      op.AddInterceptors(new EntityChangeInterceptor(builder.Services.BuildServiceProvider())); // Add EntityChangeInterceptor
-  });
+builder.Services.AddDbContext<TestDbContext>(op =>
+{
+    op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+});
 
-  // Use EasyCore Entity Change
-  builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
+// Use EasyCore Entity Change
+builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
 ```
 
 2.使用实体追踪
