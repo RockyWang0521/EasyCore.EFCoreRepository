@@ -253,8 +253,13 @@ builder.Services.AddDbContext<TestDbContext>(op =>
     op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
 });
 
+builder.Services.AddDbContext<Test2DbContext>(op =>
+{
+    op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+});
+
 // Use EasyCore Entity Change
-builder.Services.EasyCoreEFCoreEntityChange<TestDbContext>();
+builder.Services.EasyCoreEFCoreEntityChange();
 ```
 
 2.使用实体追踪
