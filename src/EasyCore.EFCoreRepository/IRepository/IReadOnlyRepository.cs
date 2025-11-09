@@ -4,27 +4,29 @@ using System.Linq.Expressions;
 namespace EasyCore.EFCoreRepository.IRepository
 {
     /// <summary>
-    /// 只读仓储接口(向下兼容，继承子基础接口。引用时只需要引用此接口就行)
+    /// Extends the read-only repository with query methods that support
+    /// filtering using expression predicates.
     /// </summary>
-    /// <typeparam name="TEntity"></typeparam>
+    /// <typeparam name="TEntity">Entity type.</typeparam>
     public interface IReadOnlyRepository<TEntity> : IReadOnlyBasicRepository<TEntity>
         where TEntity : class
     {
         /// <summary>
-        /// 可用Lambda表达式的查询
+        /// Gets a list of entities matching the specified predicate.
         /// </summary>
-        /// <param name="predicate"></param>
-        /// <param name="includeDetails"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        /// <param name="predicate">Filter expression.</param>      
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Filtered list of entities.</returns>
         Task<List<TEntity>> GetListAsync(
-                [NotNull] Expression<Func<TEntity, bool>> predicate,
-                bool includeDetails = false,
-                CancellationToken cancellationToken = default);
+            [NotNull] Expression<Func<TEntity, bool>> predicate,          
+            CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Gets a list of entities matching the specified predicate.
+        /// </summary>
+        /// <param name="predicate">Filter expression.</param>       
+        /// <returns>Filtered list of entities.</returns>
         List<TEntity> GetList(
-                [NotNull] Expression<Func<TEntity, bool>> predicate,
-                bool includeDetails = false,
-                CancellationToken cancellationToken = default);
+            [NotNull] Expression<Func<TEntity, bool>> predicate);
     }
 }

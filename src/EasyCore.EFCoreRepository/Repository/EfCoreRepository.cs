@@ -1,4 +1,5 @@
-﻿using EasyCore.EFCoreRepository.EntityBase;
+﻿using EasyCore.EFCoreRepository.DataFilter;
+using EasyCore.EFCoreRepository.EntityBase;
 using EasyCore.EFCoreRepository.IRepository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,58 +9,79 @@ using System.Linq.Expressions;
 namespace EasyCore.EFCoreRepository.Repository
 {
     /// <summary>
-    /// EFCore仓储基类
-    /// 每个方法都加了virtual可以进行重写
+    /// Base repository for entity framework core.
     /// </summary>
     /// <typeparam name="TDbContext">DbContext</typeparam>
-    /// <typeparam name="TEntity">实体类</typeparam>
-    public class EfCoreRepository<TDbContext, TEntity> : BaseEfCoreRepository, IEfCoreRepository<TEntity>
+    /// <typeparam name="TEntity">Entity</typeparam>
+    public class EfCoreRepository<TDbContext, TEntity> : BaseEfCoreRepository, IEfCoreRepository<TDbContext, TEntity>
            where TDbContext : DbContext
            where TEntity : class, IEntity
     {
         private readonly TDbContext _dbContext;
-        private readonly IServiceProvider? _serviceProvider;
+        private readonly IServiceProvider _serviceProvider;
+        private List<IDataFilter> _dataFilters = new List<IDataFilter>();
 
         public EfCoreRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(serviceProvider)
         {
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;
+            _dataFilters = GetDataFilters(dbContext.Set<TEntity>().AsQueryable());
         }
 
-        public virtual void Delete([NotNull] Expression<Func<TEntity, bool>> predicate, bool autoSave = false, CancellationToken cancellationToken = default)
+        #region Filter
+
+        public virtual EfCoreRepository<TDbContext, TEntity> AddFilter(Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            if (filter == null) return this;
+
+            var clone = Clone();
+
+            clone._dataFilters.Add(filter);
+
+            return clone;
+        }
+
+        public virtual EfCoreRepository<TDbContext, TEntity> RemoveFilter(Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            if (filter == null) return this;
+
+            var clone = Clone();
+
+            clone._dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+
+            return clone;
+        }
+
+        #endregion
+
+        #region Delete
+
+        public virtual void Delete([NotNull] Expression<Func<TEntity, bool>> predicate, bool autoSave = false)
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             var entities = query.ToList();
 
             DeleteMany(entities, autoSave);
-
-            if (autoSave)
-            {
-                dbContext.SaveChanges();
-            }
         }
 
-        public virtual void Delete(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual void Delete(TEntity entity, bool autoSave = false)
         {
             TDbContext dbContext = GetDbContext();
 
             if (entity is IEntitySoftDelete entityEsd)
             {
                 entityEsd.IsDeleted = true;
-            }
-            else
-            {
-                dbContext.RemoveRange(entity);
-            }
 
-            if (autoSave)
-            {
-                dbContext.SaveChanges();
+                if (autoSave) dbContext.SaveChanges();
             }
         }
 
@@ -69,37 +91,32 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             var entities = query.ToList();
 
             await DeleteManyAsync(entities, autoSave, cancellationToken);
-
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
         }
 
         public virtual async Task DeleteAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default)
         {
             TDbContext dbContext = GetDbContext();
 
-            dbContext.Set<TEntity>().Remove(entity);
-
-            if (autoSave)
+            if (entity is IEntitySoftDelete entityEsd)
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                entityEsd.IsDeleted = true;
+
+                if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
-        public virtual void DeleteDirect([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        public virtual void DeleteDirect([NotNull] Expression<Func<TEntity, bool>> predicate)
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             var entities = query.ToList();
 
@@ -114,7 +131,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             var entities = query.ToList();
 
@@ -123,109 +140,236 @@ namespace EasyCore.EFCoreRepository.Repository
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public virtual void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual void DeleteManyDirect(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntitySoftDelete[] esdArray)
-            {
-                foreach (var esd in esdArray) esd.IsDeleted = true;
-            }
-            else
-            {
-                dbContext.RemoveRange(entityArray);
-            }
+            dbContext.Set<TEntity>().RemoveRange(entityArray);
 
-            if (autoSave)
+            if (autoSave) dbContext.SaveChanges();
+        }
+
+        public virtual async Task DeleteManyDirectAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
+        {
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
+
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
+
+            TDbContext dbContext = GetDbContext();
+
+            dbContext.Set<TEntity>().RemoveRange(entityArray);
+
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        public virtual void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false)
+        {
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
+
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
+
+            TDbContext dbContext = GetDbContext();
+
+            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
             {
-                dbContext.SaveChanges();
+                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
+
+                if (autoSave) dbContext.SaveChanges();
             }
         }
 
         public virtual async Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntitySoftDelete[] esdArray)
+            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
             {
-                foreach (var esd in esdArray) esd.IsDeleted = true;
-            }
-            else
-            {
-                dbContext.RemoveRange(entityArray);
-            }
+                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
 
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
             }
         }
 
-        public virtual TEntity? Get([NotNull] Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default)
+        #endregion
+
+        #region Get
+
+        #region GetEnumerable
+
+        public virtual TEntity? GetFirst([NotNull] Expression<Func<TEntity, bool>> predicate)
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            query = ApplyIncludeDetails(query, includeDetails);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return query.FirstOrDefault();
         }
 
-        public virtual async Task<TEntity> GetAsync([NotNull] Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default)
+        public virtual async Task<TEntity> GetFirstAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            query = ApplyIncludeDetails(query, includeDetails);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
 #pragma warning disable CS8603 
             return await query.FirstOrDefaultAsync(cancellationToken);
 #pragma warning restore CS8603 
         }
 
-        public virtual long GetCount(CancellationToken cancellationToken = default)
+        public virtual List<TEntity> GetList([NotNull] Expression<Func<TEntity, bool>> predicate)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return query.ToList();
+        }
+
+        public virtual List<TEntity> GetList()
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().AsQueryable();
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
+            return query.ToList();
+        }
+
+        public virtual async Task<List<TEntity>> GetListAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+        public virtual async Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.ToListAsync(cancellationToken);
+        }
+
+        public virtual List<TEntity> GetPagedList(int skipCount, int maxResultCount)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return query.Skip(skipCount).Take(maxResultCount).ToList();
+        }
+
+        public virtual async Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.Skip(skipCount).Take(maxResultCount).ToListAsync(cancellationToken);
+        }
+
+        public virtual List<TEntity> GetPagedList(int skipCount, int maxResultCount, [NotNull] Expression<Func<TEntity, bool>> predicate)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return query.Skip(skipCount).Take(maxResultCount).ToList();
+        }
+
+        public virtual async Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, [NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.Skip(skipCount).Take(maxResultCount).ToListAsync(cancellationToken);
+        }
+
+        #endregion
+
+        #region GetQueryable
+
+        public virtual IQueryable<TEntity> AsQueryable([NotNull] Expression<Func<TEntity, bool>> predicate)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().Where(predicate);
+
+            return _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+        }
+
+        public virtual IQueryable<TEntity> AsQueryable()
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            return _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+        }
+
+        public virtual IQueryable<TEntity> GetPageQuery(int skipCount, int maxResultCount, [NotNull] Expression<Func<TEntity, bool>> predicate)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return query.Skip(skipCount).Take(maxResultCount);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Count
+
+        public virtual long GetCount()
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return query.Count();
         }
@@ -236,22 +380,18 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var query = dbContext.Set<TEntity>().AsQueryable();
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return await query.CountAsync(cancellationToken);
         }
 
-        public virtual long GetCount([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        public virtual long GetCount([NotNull] Expression<Func<TEntity, bool>> predicate)
         {
             TDbContext dbContext = GetDbContext();
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return query.Count();
         }
@@ -262,138 +402,27 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
 
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return await query.CountAsync(cancellationToken);
         }
 
-        public virtual List<TEntity> GetList([NotNull] Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default)
+        #endregion
+
+        #region DbSet
+
+        public virtual DbSet<TEntity> EntityDbSet()
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().Where(predicate);
-
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            return query.ToList();
+            return dbContext.Set<TEntity>();
         }
 
-        public virtual List<TEntity> GetList(bool includeDetails = false, CancellationToken cancellationToken = default)
-        {
-            TDbContext dbContext = GetDbContext();
+        #endregion
 
-            var query = dbContext.Set<TEntity>().AsQueryable();
+        #region Insert
 
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            return query.ToList();
-        }
-
-        public virtual async Task<List<TEntity>> GetListAsync([NotNull] Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default)
-        {
-            TDbContext dbContext = GetDbContext();
-
-            var query = dbContext.Set<TEntity>().Where(predicate);
-
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            return await query.ToListAsync(cancellationToken);
-        }
-
-        public virtual async Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default)
-        {
-            TDbContext dbContext = GetDbContext();
-
-            var query = dbContext.Set<TEntity>().AsQueryable();
-
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            return await query.ToListAsync(cancellationToken);
-        }
-
-        public virtual List<TEntity> GetPagedList(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default)
-        {
-            TDbContext dbContext = GetDbContext();
-
-            var query = dbContext.Set<TEntity>().AsQueryable();
-
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            if (!string.IsNullOrWhiteSpace(sorting))
-            {
-                query = ApplySorting(query, sorting);
-            }
-
-            return query.Skip(skipCount).Take(maxResultCount).ToList();
-        }
-
-        public virtual async Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default)
-        {
-            TDbContext dbContext = GetDbContext();
-
-            var query = dbContext.Set<TEntity>().AsQueryable();
-
-            query = ApplyIncludeDetails(query, includeDetails);
-
-            query = TenantDataFilter.ApplyTenantDataFilters<TEntity>(query);
-
-            query = SoftDeleteDataFilter.ApplySoftDeleteDataFilters<TEntity>(query);
-
-            if (!string.IsNullOrWhiteSpace(sorting))
-            {
-                query = ApplySorting(query, sorting);
-            }
-
-            return await query.Skip(skipCount).Take(maxResultCount).ToListAsync(cancellationToken);
-        }
-
-        private IQueryable<TEntity> ApplySorting(IQueryable<TEntity> query, string sorting)
-        {
-            var sortingParts = sorting.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var propertyName = sortingParts[0];
-            var isDescending = sortingParts.Length > 1 && sortingParts[1].Equals("desc", StringComparison.OrdinalIgnoreCase);
-
-            var propertyInfo = typeof(TEntity).GetProperty(propertyName);
-            if (propertyInfo == null)
-            {
-                throw new ArgumentException($"Property '{propertyName}' does not exist on type '{typeof(TEntity).Name}'.");
-            }
-
-            var parameter = Expression.Parameter(typeof(TEntity), "x");
-            var property = Expression.Property(parameter, propertyInfo);
-            var keySelector = Expression.Lambda(property, parameter);
-
-            var methodName = isDescending ? "OrderByDescending" : "OrderBy";
-            var orderByMethod = typeof(Queryable).GetMethods()
-                .First(method => method.Name == methodName && method.GetParameters().Length == 2)
-                .MakeGenericMethod(typeof(TEntity), propertyInfo.PropertyType);
-
-            return (IQueryable<TEntity>)orderByMethod.Invoke(null, new object[] { query, keySelector })!;
-        }
-
-        public virtual TEntity Insert(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual TEntity Insert(TEntity entity, bool autoSave = false)
         {
             TDbContext dbContext = GetDbContext();
 
@@ -401,7 +430,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
+            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+
+            if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
+
+            if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
 
             if (autoSave) dbContext.SaveChanges();
 
@@ -416,79 +449,78 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
+            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
+            if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
+
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
             return savedEntity;
         }
 
-        public virtual void InsertMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual void InsertMany(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
+            var now = DateTime.Now;
 
-            if (entityArray is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            foreach (var entity in entityArray)
+            {
+                if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
 
-            if (entityArray is IEntitySoftDelete[] entitySoft) foreach (var entity in entitySoft) entity.IsDeleted = false;
+                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
+
+                if (entity is IEntityCreateTime ct) ct.CreateTime = now;
+            }
 
             dbContext.Set<TEntity>().AddRange(entityArray);
 
-            if (autoSave)
-            {
-                dbContext.SaveChanges();
-            }
+            if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task InsertManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
+            var now = DateTime.Now;
 
-            if (entityArray is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+            foreach (var entity in entityArray)
+            {
+                if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
 
-            if (entityArray is IEntitySoftDelete[] entitySoft) foreach (var entity in entitySoft) entity.IsDeleted = false;
+                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
+
+                if (entity is IEntityCreateTime ct) ct.CreateTime = now;
+            }
 
             await dbContext.Set<TEntity>().AddRangeAsync(entityArray, cancellationToken);
 
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        public virtual TEntity Update(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default)
+        #endregion
+
+        #region Update
+
+        public virtual TEntity Update(TEntity entity, bool autoSave = false)
         {
             TDbContext dbContext = GetDbContext();
 
@@ -499,17 +531,18 @@ namespace EasyCore.EFCoreRepository.Repository
                 dbContext.Update(entity);
             }
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
                 if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
             }
 
-            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
+            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
 
-            if (autoSave)
-            {
-                dbContext.SaveChanges();
-            }
+            if (autoSave) dbContext.SaveChanges();
 
             return entity;
         }
@@ -525,82 +558,83 @@ namespace EasyCore.EFCoreRepository.Repository
                 dbContext.Update(entity);
             }
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
                 if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
             }
 
-            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantDataFilter.TenantId;
+            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
 
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
             return entity;
         }
 
-        public virtual void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
+        public virtual void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                if (entities is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+                foreach (var entity in entityArray)
+                {
+                    if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                    if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
+                }
             }
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
+            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
 
             dbContext.Set<TEntity>().UpdateRange(entityArray);
 
-            if (autoSave)
-            {
-                dbContext.SaveChanges();
-            }
+            if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task UpdateManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null)
-            {
-                throw new ArgumentNullException(nameof(entities));
-            }
+            if (entities == null) throw new ArgumentNullException(nameof(entities));
 
             var entityArray = entities.ToArray();
 
-            if (entityArray.Length <= 0)
-            {
-                return;
-            }
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                if (entities is IEntityConcurrencyCheck[] eruptEntity) foreach (var entity in eruptEntity) entity.ConcurrencyStamp = Guid.NewGuid().ToString();
+                foreach (var entity in entityArray)
+                {
+                    if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
+
+                    if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
+                }
             }
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantDataFilter.TenantId;
+            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
 
             dbContext.Set<TEntity>().UpdateRange(entityArray);
 
-            if (autoSave)
-            {
-                await dbContext.SaveChangesAsync(cancellationToken);
-            }
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
+
+        #endregion
+
+        #region Other
 
         public int SaveChanges()
         {
@@ -609,31 +643,37 @@ namespace EasyCore.EFCoreRepository.Repository
             return dbContext.SaveChanges();
         }
 
-        public async Task<int> SaveChangesAsync()
+        public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
             TDbContext dbContext = GetDbContext();
 
-            return await dbContext.SaveChangesAsync();
+            return await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
+        public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
 
-        private IQueryable<TEntity> ApplyIncludeDetails(IQueryable<TEntity> query, bool includeDetails)
+        private List<IDataFilter> GetDataFilters(IEnumerable<TEntity> entities)
         {
-            if (!includeDetails) return query;
+            var dataFilters = new List<IDataFilter>();
 
-            var dbContext = GetDbContext();
+            if (entities.Any(e => e is IEntitySoftDelete))
+                dataFilters.Add(SoftDeleteFilter);
 
-            var entityType = dbContext.Model.FindEntityType(typeof(TEntity));
+            if (entities.Any(e => e is IEntityTenant))
+                dataFilters.Add(TenantFilter);
 
-            if (entityType == null) return query;
-
-            foreach (var navigation in entityType.GetNavigations())
-            {
-                query = query.Include(navigation.Name);
-            }
-
-            return query;
+            return dataFilters;
         }
+
+        private EfCoreRepository<TDbContext, TEntity> Clone()
+        {
+            var clone = new EfCoreRepository<TDbContext, TEntity>(_dbContext, _serviceProvider);
+
+            clone._dataFilters = new List<IDataFilter>(_dataFilters);
+
+            return clone;
+        }
+
+        #endregion
     }
 }

@@ -1,7 +1,7 @@
 ﻿namespace EasyCore.EFCoreRepository.EntityBase
 {
     /// <summary>
-    /// 仓储基类
+    /// Interface for entity
     /// </summary>
     public interface IEntity
     {

@@ -1,83 +1,130 @@
 ﻿namespace EasyCore.EFCoreRepository.IRepository
 {
     /// <summary>
-    /// 基础仓储接口
+    /// Defines a basic repository that supports CRUD operations,
+    /// extending the read-only repository with insert, update, delete,
+    /// and save-changes functionality.
     /// </summary>
-    /// <typeparam name="TEntity"></typeparam>
+    /// <typeparam name="TEntity">Entity type.</typeparam>
     public interface IBasicRepository<TEntity> : IReadOnlyBasicRepository<TEntity> where TEntity : class
     {
         /// <summary>
-        /// 新增
+        /// Inserts a new entity.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="autoSave">是否自动保存</param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<TEntity> InsertAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        TEntity Insert(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entity">Entity to insert.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<TEntity> InsertAsync(
+            TEntity entity, bool autoSave = false,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 批量新增
+        /// Inserts a new entity.
         /// </summary>
-        /// <param name="entities"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task InsertManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        void InsertMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entity">Entity to insert.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        TEntity Insert(
+            TEntity entity, bool autoSave = false);
 
         /// <summary>
-        /// 更新
+        /// Inserts multiple entities.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<TEntity> UpdateAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        TEntity Update(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entities">Entities to insert.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task InsertManyAsync(
+            IEnumerable<TEntity> entities, bool autoSave = false,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 批量更新
+        /// Inserts multiple entities.
         /// </summary>
-        /// <param name="entities"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task UpdateManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entities">Entities to insert.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        void InsertMany(
+            IEnumerable<TEntity> entities, bool autoSave = false);
 
         /// <summary>
-        /// 删除
+        /// Updates an existing entity.
         /// </summary>
-        /// <param name="entity"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task DeleteAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        void Delete(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entity">Entity to update.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<TEntity> UpdateAsync(
+            TEntity entity, bool autoSave = false,
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 批量删除
+        /// Updates an existing entity.
         /// </summary>
-        /// <param name="entities"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
-
-        void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="entity">Entity to update.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        TEntity Update(
+            TEntity entity, bool autoSave = false);
 
         /// <summary>
-        /// 保存更改
+        /// Updates multiple entities.
         /// </summary>
-        /// <returns></returns>
-        Task<int> SaveChangesAsync();
+        /// <param name="entities">Entities to update.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task UpdateManyAsync(
+            IEnumerable<TEntity> entities, bool autoSave = false,
+            CancellationToken cancellationToken = default);
 
+        /// <summary>
+        /// Updates multiple entities.
+        /// </summary>
+        /// <param name="entities">Entities to update.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        void UpdateMany(
+            IEnumerable<TEntity> entities, bool autoSave = false);
+
+        /// <summary>
+        /// Deletes an entity.
+        /// </summary>
+        /// <param name="entity">Entity to delete.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task DeleteAsync(
+            TEntity entity, bool autoSave = false,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes an entity.
+        /// </summary>
+        /// <param name="entity">Entity to delete.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        void Delete(
+            TEntity entity, bool autoSave = false);
+
+        /// <summary>
+        /// Deletes multiple entities.
+        /// </summary>
+        /// <param name="entities">Entities to delete.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task DeleteManyAsync(
+            IEnumerable<TEntity> entities, bool autoSave = false,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Deletes multiple entities.
+        /// </summary>
+        /// <param name="entities">Entities to delete.</param>
+        /// <param name="autoSave">Whether to automatically save changes.</param>
+        void DeleteMany(
+            IEnumerable<TEntity> entities, bool autoSave = false);
+
+        /// <summary>
+        /// Saves all pending changes.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Saves all pending changes.
+        /// </summary>
         int SaveChanges();
     }
 }

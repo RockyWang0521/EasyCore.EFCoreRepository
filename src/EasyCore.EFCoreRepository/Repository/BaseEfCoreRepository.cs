@@ -1,22 +1,39 @@
-﻿using EasyCore.EFCoreRepository.DataFilter.SoftDeleteFilter;
-using EasyCore.EFCoreRepository.DataFilter.TenantFilter;
+﻿using EasyCore.EFCoreRepository.DataFilter;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EasyCore.EFCoreRepository.Repository
 {
+    /// <summary>
+    /// Base repository for all repositories.
+    /// </summary>
     public class BaseEfCoreRepository
     {
         internal readonly IServiceProvider ServiceProvider;
 
-        internal readonly ITenantDataFilter TenantDataFilter;
+        internal readonly ITenantFilter TenantFilter;
 
-        internal readonly ISoftDeleteDataFilter SoftDeleteDataFilter;
+        internal readonly ISoftDeleteFilter SoftDeleteFilter;
 
-        public BaseEfCoreRepository(IServiceProvider serviceProvider)
+        internal BaseEfCoreRepository(IServiceProvider serviceProvider)
         {
             ServiceProvider = serviceProvider;
-            TenantDataFilter = ServiceProvider!.GetService<ITenantDataFilter>()!;
-            SoftDeleteDataFilter = ServiceProvider!.GetService<ISoftDeleteDataFilter>()!;
+            TenantFilter = ServiceProvider!.GetService<ITenantFilter>()!;
+            SoftDeleteFilter = ServiceProvider!.GetService<ISoftDeleteFilter>()!;
+        }
+
+        internal IDataFilter GetDataFilter(Type filter)
+        {
+            if (filter == typeof(ISoftDeleteFilter))
+                return SoftDeleteFilter;
+            else if (filter == typeof(ITenantFilter))
+                return TenantFilter;
+            else
+            {
+                if (!typeof(IDataFilter).IsAssignableFrom(filter))
+                    throw new ArgumentException("Invalid filter type");
+
+                return (IDataFilter)ServiceProvider.GetService(filter)!;
+            }
         }
     }
 }

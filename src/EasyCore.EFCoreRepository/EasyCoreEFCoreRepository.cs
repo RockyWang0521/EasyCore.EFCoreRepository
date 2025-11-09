@@ -1,5 +1,4 @@
-﻿using EasyCore.EFCoreRepository.DataFilter.SoftDeleteFilter;
-using EasyCore.EFCoreRepository.DataFilter.TenantFilter;
+﻿using EasyCore.EFCoreRepository.DataFilter;
 using EasyCore.EFCoreRepository.IRepository;
 using EasyCore.EFCoreRepository.Repository;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +18,9 @@ namespace EasyCore.EFCoreRepository
 
             services.AddHttpContextAccessor();
 
-            services.TryAddTransient<ITenantDataFilter, TenantDataFilter>();
+            services.TryAddTransient<ITenantFilter, TenantFilter>();
 
-            services.TryAddTransient<ISoftDeleteDataFilter, SoftDeleteDataFilter>();
+            services.TryAddTransient<ISoftDeleteFilter, SoftDeleteFilter>();
 
             var rootDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
@@ -33,40 +32,36 @@ namespace EasyCore.EFCoreRepository
 
             var repoImplBaseType = typeof(EfCoreRepository<,>);
 
-            var repoInterfaceType = typeof(IEfCoreRepository<>);
+            var repoInterfaceType = typeof(IEfCoreRepository<,>);
 
             foreach (var dll in dllFiles)
             {
-                try
+                var assembly = Assembly.LoadFrom(dll);
+
+                foreach (var type in assembly.GetTypes())
                 {
-                    var assembly = Assembly.LoadFrom(dll);
+                    if (!type.IsClass || type.IsAbstract) continue;
 
-                    foreach (var type in assembly.GetTypes())
-                    {
-                        if (!type.IsClass || type.IsAbstract) continue;
+                    var baseType = type.BaseType;
 
-                        var baseType = type.BaseType;
+                    if (baseType == null || !baseType.IsGenericType) continue;
 
-                        if (baseType == null || !baseType.IsGenericType) continue;
+                    var baseGeneric = baseType.GetGenericTypeDefinition();
 
-                        var baseGeneric = baseType.GetGenericTypeDefinition();
+                    if (baseGeneric != repoImplBaseType) continue;
 
-                        if (baseGeneric != repoImplBaseType) continue;
+                    var args = baseType.GetGenericArguments();
 
-                        var args = baseType.GetGenericArguments();
+                    var dbContextType = args[0];
 
-                        var dbContextType = args[0];
+                    var entityType = args[1];
 
-                        var entityType = args[1];
+                    if (!registeredDbContexts.Contains(dbContextType)) continue;
 
-                        if (!registeredDbContexts.Contains(dbContextType)) continue;
+                    var interfaceType = repoInterfaceType.MakeGenericType(dbContextType, entityType);
 
-                        var interfaceType = repoInterfaceType.MakeGenericType(entityType);
-
-                        services.AddTransient(interfaceType, type);
-                    }
+                    services.AddTransient(interfaceType, type);
                 }
-                catch { }
             }
         }
     }

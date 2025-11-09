@@ -4,49 +4,70 @@ using System.Linq.Expressions;
 namespace EasyCore.EFCoreRepository.IRepository
 {
     /// <summary>
-    /// 只读基础仓储接口
-    /// includeDetails--返回实体时是否包含实体中的子实体
-    /// 异步&同步方法
+    /// Defines a read-only repository with basic query operations such as 
+    /// retrieving lists, counts, and paged results.
     /// </summary>
-    /// <typeparam name="TEntity">实体</typeparam>
-    public interface IReadOnlyBasicRepository<TEntity>  where TEntity : class
+    /// <typeparam name="TEntity">Entity type.</typeparam>
+    public interface IReadOnlyBasicRepository<TEntity> where TEntity : class
     {
         /// <summary>
-        /// 获取所有实体对象
+        /// Gets all entities.
         /// </summary>
-        /// <param name="includeDetails"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default(CancellationToken));
-        List<TEntity> GetList(bool includeDetails = false, CancellationToken cancellationToken = default(CancellationToken));
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<List<TEntity>> GetListAsync(         
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 获取Count
-        /// </summary>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<long> GetCountAsync(CancellationToken cancellationToken = default(CancellationToken));
-        long GetCount(CancellationToken cancellationToken = default(CancellationToken));
+        /// Gets all entities.
+        /// </summary>       
+        List<TEntity> GetList();
 
         /// <summary>
-        /// 获取指定的Count
+        /// Gets the total number of entities.
         /// </summary>
-        /// <param name="predicate"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<long> GetCountAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
-        long GetCount([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<long> GetCountAsync(
+            CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// 分页查询
+        /// Gets the total number of entities.
         /// </summary>
-        /// <param name="skipCount">跳过的数量</param>
-        /// <param name="maxResultCount">最大返回数量</param>
-        /// <param name="sorting">排序字段</param>
-        /// <param name="includeDetails"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
-        Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default(CancellationToken));
-        List<TEntity> GetPagedList(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default(CancellationToken));
+        long GetCount();
+
+        /// <summary>
+        /// Gets the number of entities that match the given predicate.
+        /// </summary>
+        /// <param name="predicate">Filter expression.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<long> GetCountAsync(
+            [NotNull] Expression<Func<TEntity, bool>> predicate,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the number of entities that match the given predicate.
+        /// </summary>
+        /// <param name="predicate">Filter expression.</param>
+        long GetCount(
+            [NotNull] Expression<Func<TEntity, bool>> predicate);
+
+        /// <summary>
+        /// Gets a paged list of entities.
+        /// </summary>
+        /// <param name="skipCount">Number of records to skip.</param>
+        /// <param name="maxResultCount">Number of items to return.</param>               
+        /// <param name="cancellationToken">Cancellation token.</param>
+        Task<List<TEntity>> GetPagedListAsync(
+            int skipCount,
+            int maxResultCount,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a paged list of entities.
+        /// </summary>
+        /// <param name="skipCount">Number of records to skip.</param>
+        /// <param name="maxResultCount">Number of items to return.</param>     
+        List<TEntity> GetPagedList(
+            int skipCount,
+            int maxResultCount);
     }
 }
