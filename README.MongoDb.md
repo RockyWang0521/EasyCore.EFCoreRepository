@@ -251,3 +251,73 @@ _repository
     .Delete(e => e.Name == "Test1", true);    // 🎯 执行操作
 ```
 
+# 🔍 EasyCore.EntityChange
+## 📊 实体变更追踪
+EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
+
+### 1. 📝 Program 注册
+
+```
+builder.Services.AddDbContext<TestDbContext>(op =>
+{
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+});
+
+builder.Services.AddDbContext<Test2DbContext>(op =>
+{
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+});
+
+// 🔧 启用 EasyCore 实体变更服务
+builder.Services.EasyCoreEntityChange();
+```
+
+### 2. 🎯 使用实体变更追踪
+
+```
+public class EntityChange : 
+    IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
+    IEntityDeletedChangeHandler<TestEntity>, 
+    IEntityAddedChangeHandler<TestEntity>
+{
+    private readonly ILogger<EntityChange> _logger;
+
+    public EntityChange(ILogger<EntityChange> logger) => _logger = logger;
+
+    // ➕ 实体新增处理
+    public async Task OnAddedAsync(TestEntity entity)
+    {
+        _logger.LogInformation($"🆕 实体新增: Id:{entity.Id}; Name:{entity.Name}; Age:{entity.Age};");
+        await Task.CompletedTask;
+    }
+
+    // 🗑️ 实体删除处理  
+    public async Task OnDeletedAsync(TestEntity entity)
+    {
+        _logger.LogInformation($"🗑️ 实体删除: Id:{entity.Id}; Name:{entity.Name}; Age:{entity.Age};");
+        await Task.CompletedTask;
+    }
+
+    // ✏️ 实体更新处理
+    public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
+    {
+        _logger.LogInformation($"✏️ 实体更新: " +
+            $"Id:{oldEntity.Id} → {currentEntity.Id}; " +
+            $"Name:{oldEntity.Name} → {currentEntity.Name}; " +
+            $"Age:{oldEntity.Age} → {currentEntity.Age};");
+        return Task.CompletedTask;
+    }
+}
+```
+
+#### 🎯 支持的变更接口：
+
+```
+IEntityAddedChangeHandler<TEntity> - 实体新增处理器 ➕
+
+IEntityDeletedChangeHandler<TEntity> - 实体删除处理器 🗑️
+
+IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - 实体更新处理器 ✏️
+```
+
+#### ✨ 特性：当实体完成增删改操作时，系统会自动调用对应的接口方法，实现无缝的变更追踪！
