@@ -247,11 +247,11 @@ _repository
     .Delete(e => e.Name == "Test1", true);    // 🎯 执行操作
 ```
 
-# 🔄 EasyCore.EFCoreUnitOfWork
+# 🔄 EasyCore.UnitOfWork
 
 ## 🎯 工作单元模式
 
-EasyCore.EFCoreUnitOfWork 提供了 SaveChangesAttribute 特性，让数据持久化变得简单高效！✨
+EasyCore.UnitOfWork 提供了 SaveChangesAttribute 特性，让数据持久化变得简单高效！✨
 
 ### 1. 📝 Program 注册
 
@@ -271,7 +271,7 @@ public class Program
         // ✨ 使用 EasyCore EFCore Repository
         builder.Services.EasyCoreEFCoreRepository();
         // 🔄 使用 EasyCore EFCore UnitOfWork
-        builder.Services.EasyCoreEFCoreUnitOfWork();
+        builder.Services.EasyCoreUnitOfWork();
 
         var app = builder.Build();
 
@@ -355,25 +355,25 @@ public class UnitOfWorkTest2 : IUnitOfWorkTest2
 
 第二个参数：指定要保存的数据库 DbContext 对象
 
-# 🔍 EasyCore.EFCoreEntityChange
+# 🔍 EasyCore.EntityChange
 ## 📊 实体变更追踪
-EasyCore.EFCoreEntityChange 提供了强大的实体变更追踪能力！🕵️
+EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 
 ### 1. 📝 Program 注册
 
 ```
 builder.Services.AddDbContext<TestDbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
 });
 
 builder.Services.AddDbContext<Test2DbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
 });
 
 // 🔧 启用 EasyCore 实体变更服务
-builder.Services.EasyCoreEFCoreEntityChange();
+builder.Services.EasyCoreEntityChange();
 ```
 
 ### 2. 🎯 使用实体变更追踪
