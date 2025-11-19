@@ -362,7 +362,7 @@ builder.Services.AddDbContext<Test2DbContext>(op =>
 builder.Services.EasyCoreEntityChange();
 ```
 ### 2. 🎯 Using Entity Change Tracking
-
+```
 public class EntityChange : 
     IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
     IEntityDeletedChangeHandler<TestEntity>, 
