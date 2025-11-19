@@ -1,9 +1,12 @@
-🏗️ EasyCore.EFCoreRepository
+# 🏗️ EasyCore.EFCoreRepository
+
+[中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.md)
+
 📚 Overview
 Repository is a crucial concept in software development, widely used especially in Domain-Driven Design (DDD) 🎯 and the Data Access Layer. Repository is a design pattern 🏛️ that abstracts the data access layer, encapsulating data access logic and decoupling upper-level business logic from underlying data storage. Repository acts like an interface 📦 to the data warehouse, managing persistence operations (CRUD) for entity objects.
 
-🚀 Quick Start
-1. 📝 Program Registration
+## 🚀 Quick Start
+### 1. 📝 Program Registration
 text
 public class Program
 {
@@ -34,7 +37,7 @@ public class Program
         app.Run();
     }
 }
-2. 🏷️ Entity Inheritance
+### 2. 🏷️ Entity Inheritance
 EasyCore.EFCoreRepository provides a feature-rich entity base class EasyCoreEntity, including:
 
 🔄 Concurrency Token
@@ -50,7 +53,7 @@ public class TestEntity : EasyCoreEntity<Guid>
     public string Name { get; set; }
     public int Age { get; set; }
 }
-3. 🔧 Repository Class Inheritance
+### 3. 🔧 Repository Class Inheritance
 EasyCore.EFCoreRepository provides complete repository abstraction and implementation:
 
 Repository Interface 📜
@@ -68,8 +71,8 @@ public class TestEntityRepository : EfCoreRepository<TestDbContext, TestEntity>,
     {
     }
 }
-4.💡 Using the Repository
-4.1 🎯 Basic CRUD Operations
+### 4.💡 Using the Repository
+#### 4.1 🎯 Basic CRUD Operations
 text
 [Route("api/[controller]")]
 [ApiController]
@@ -115,15 +118,15 @@ public class RepositoryController : ControllerBase
         await _repository.UpdateAsync(entity, true);
     }
 }
-4.2 📋 Complete API List
+#### 4.2 📋 Complete API List
 EasyCore.EFCoreRepository provides a rich set of API methods:
 
-🔧 Filter Management
+##### 🔧 Filter Management
 text
 EfCoreRepository<TDbContext, TEntity> AddFilter(Type filterType);
 
 EfCoreRepository<TDbContext, TEntity> RemoveFilter(Type filterType);
-➕ Insert Operations
+##### ➕ Insert Operations
 text
 Task<TEntity> InsertAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
@@ -132,7 +135,7 @@ TEntity Insert(TEntity entity, bool autoSave = false);
 Task InsertManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
 void InsertMany(IEnumerable<TEntity> entities, bool autoSave = false);
-✏️ Update Operations
+##### ✏️ Update Operations
 text
 Task<TEntity> UpdateAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
@@ -141,7 +144,7 @@ TEntity Update(TEntity entity, bool autoSave = false);
 Task UpdateManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
 void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false);
-🗑️ Delete Operations
+##### 🗑️ Delete Operations
 text
 Task DeleteAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
@@ -150,12 +153,12 @@ void Delete(TEntity entity, bool autoSave = false);
 Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
 void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false);
-💾 Save Operations
+##### 💾 Save Operations
 text
 Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
 int SaveChanges();
-🔍 Query Operations
+##### 🔍 Query Operations
 text
 // Get List
 Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
@@ -185,7 +188,7 @@ List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, bool includeDet
 Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
 
 TEntity? Get(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
-⚡ Direct Delete Operations
+##### ⚡ Direct Delete Operations
 text
 Task DeleteDirectAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
@@ -194,22 +197,22 @@ void DeleteDirect(Expression<Func<TEntity, bool>> predicate);
 void DeleteManyDirect(IEnumerable<TEntity> entities, bool autoSave = false);
 
 Task DeleteManyDirectAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
-5.🎛️ Advanced Features
-🎯 WhereIf Support
+### 5.🎛️ Advanced Features
+#### 🎯 WhereIf Support
 EasyCore.EFCoreRepository provides intelligent conditional query support:
 
 text
 IQueryable<T>.WhereIf(xxx != null, x => x.xxx == xxx)
 ✨ Feature: The subsequent filter condition is only executed when the xxx != null condition is met; otherwise, the code continues execution.
 
-6. 🔍 Data Filters
+### 6. 🔍 Data Filters
 EasyCore.EFCoreRepository includes two practical built-in data filters:
 
 🗑️ ISoftDeleteFilter - Soft Delete Filter
 
 🏢 ITenantFilter - Tenant Filter
 
-Custom Filter Example 🎨:
+#### Custom Filter Example 🎨:
 text
 public class CustomDataFilter : IDataFilter, ITransientDependencie
 {
@@ -219,18 +222,19 @@ public class CustomDataFilter : IDataFilter, ITransientDependencie
         return query;
     }
 }
-Dynamic Filter Management ⚡:
+#### Dynamic Filter Management ⚡:
 text
 _repository
     .RemoveFilter(typeof(ITenantFilter))      // 🗑️ Remove Tenant Filter
     .RemoveFilter(typeof(ISoftDeleteFilter))  // 🗑️ Remove Soft Delete Filter  
     .AddFilter(typeof(CustomDataFilter))      // ➕ Add Custom Filter
     .Delete(e => e.Name == "Test1", true);    // 🎯 Execute Operation
-🔄 EasyCore.EFCoreUnitOfWork
-🎯 Unit of Work Pattern
-EasyCore.EFCoreUnitOfWork provides the SaveChangesAttribute feature, making data persistence simple and efficient! ✨
 
-1. 📝 Program Registration
+# 🔄 EasyCore.UnitOfWork
+## 🎯 Unit of Work Pattern
+EasyCore.UnitOfWork provides the SaveChangesAttribute feature, making data persistence simple and efficient! ✨
+
+### 1. 📝 Program Registration
 text
 public class Program
 {
@@ -246,8 +250,8 @@ public class Program
 
         // ✨ Use EasyCore EFCore Repository
         builder.Services.EasyCoreEFCoreRepository();
-        // 🔄 Use EasyCore EFCore UnitOfWork
-        builder.Services.EasyCoreEFCoreUnitOfWork();
+        // 🔄 Use EasyCore UnitOfWork
+        builder.Services.EasyCoreUnitOfWork();
 
         var app = builder.Build();
 
@@ -262,7 +266,7 @@ public class Program
         app.Run();
     }
 }
-2. 📜 Abstract Interface Definition
+### 2. 📜 Abstract Interface Definition
 text
 public interface IUnitOfWorkTest : ITransientDependencie
 {
@@ -284,8 +288,8 @@ public interface IUnitOfWorkTest2 : ITransientDependencie
     /// </summary>
     Task<TestEntity> EntityUnitOfWork();
 }
-3. 🏷️ Using the SaveChangesAttribute
-Method Level Usage 🎯:
+### 3. 🏷️ Using the SaveChangesAttribute
+#### Method Level Usage 🎯:
 text
 public class UnitOfWorkTest : IUnitOfWorkTest
 {
@@ -301,8 +305,8 @@ public class UnitOfWorkTest : IUnitOfWorkTest
     public Task<TestEntity> Transaction() 
         => _repository.InsertAsync(new TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
 }
-Class Level Usage 🏛️:
-text
+#### Class Level Usage 🏛️:
+
 [SaveChanges(typeof(TestDbContext))]
 public class UnitOfWorkTest2 : IUnitOfWorkTest2
 {
@@ -313,31 +317,33 @@ public class UnitOfWorkTest2 : IUnitOfWorkTest2
     public Task<TestEntity> EntityUnitOfWork() 
         => _repository.InsertAsync(new TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
 }
-💡 Attribute Parameter Description:
+
+#### 💡 Attribute Parameter Description:
+
 First parameter: Whether it is a database transaction; when true, performs a transactional save 💰
 
 Second parameter: Specifies the database DbContext object to save
 
-🔍 EasyCore.EFCoreEntityChange
-📊 Entity Change Tracking
+# 🔍 EasyCore.EntityChange
+## 📊 Entity Change Tracking
 EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilities! 🕵️
 
-1. 📝 Program Registration
+### 1. 📝 Program Registration
 text
 builder.Services.AddDbContext<TestDbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
 });
 
 builder.Services.AddDbContext<Test2DbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
+    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
 });
 
 // 🔧 Enable EasyCore Entity Change Service
-builder.Services.EasyCoreEFCoreEntityChange();
-2. 🎯 Using Entity Change Tracking
-text
+builder.Services.EasyCoreEntityChange();
+### 2. 🎯 Using Entity Change Tracking
+
 public class EntityChange : 
     IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
     IEntityDeletedChangeHandler<TestEntity>, 
@@ -371,15 +377,17 @@ public class EntityChange :
         return Task.CompletedTask;
     }
 }
-🎯 Supported Change Interfaces:
-text
+#### 🎯 Supported Change Interfaces:
+
 IEntityAddedChangeHandler<TEntity> - Entity Added Handler ➕
 
 IEntityDeletedChangeHandler<TEntity> - Entity Deleted Handler 🗑️
 
 IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - Entity Updated Handler ✏️
-✨ Feature: When entity add, delete, or update operations are completed, the system automatically calls the corresponding interface methods, enabling seamless change tracking!
-🎉 Summary
+
+#### ✨ Feature: When entity add, delete, or update operations are completed, the system automatically calls the corresponding interface methods, enabling seamless change tracking!
+
+# 🎉 Summary
 The EasyCore.EFCoreRepository series of components provides:
 
 🏗️ Complete Repository Pattern Implementation
