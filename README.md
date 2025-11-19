@@ -1,542 +1,323 @@
-# EasyCore.EFCoreRepository
+# 🏗️ EasyCore.EFCoreRepository
+📚 概述
+Repository 是软件开发中的一个重要概念，尤其在 领域驱动设计（DDD） 🎯 和 数据访问层 中广泛使用。Repository 是一种 抽象数据访问层的设计模式 🏛️，它封装了数据访问逻辑，使上层业务逻辑与底层数据存储解耦。Repository 就像是数据仓库的接口 📦，用于管理实体对象的持久化（增删改查）操作。
 
-
-Repository 是软件开发中的一个重要概念，尤其在 领域驱动设计（DDD） 和 数据访问层 中广泛使用。Repository 是一种 抽象数据访问层的设计模式，它封装了数据访问逻辑，使上层业务逻辑与底层数据存储解耦。Repository 就像是数据仓库的接口，用于管理实体对象的持久化（增删改查）操作。
-
-## 1.Program注册
-
-```
- public class Program
- {
-     public static void Main(string[] args)
-     {
-         var builder = WebApplication.CreateBuilder(args);
-
-         builder.Services.AddControllers();
-         builder.Services.AddEndpointsApiExplorer();
-         builder.Services.AddSwaggerGen();
-         builder.Services.EasyCoreDependencie();
-
-         builder.Services.AddDbContext<TestDbContext>();
-
-         // Use EasyCore EFCore Repository
-         builder.Services.EasyCoreEFCoreRepository();
-
-         var app = builder.Build();
-
-         if (app.Environment.IsDevelopment())
-         {
-             app.UseSwagger();
-             app.UseSwaggerUI();
-         }
-
-         app.UseAuthorization();
-
-         app.MapControllers();
-
-         app.Run();
-     }
- }
-```
-
-## 2.实体继承
-
-EasyCore.EFCoreRepository 提供了一个实体基类 EasyCoreEntity，包含并发标记/软删除/以及多租户ID。
+## 🚀 快速开始
+### 1. 📝 Program 注册
 
 ```
-    // 注：EasyCoreEntity<TKey>中的泛型类型输入为表的主键。
-    public class TestEntity : EasyCoreEntity<Guid>
+public class Program
+{
+    public static void Main(string[] args)
     {
-        public string Name { get; set; }
+        var builder = WebApplication.CreateBuilder(args);
 
-        public int Age { get; set; }
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.EasyCoreDependencie();
+
+        builder.Services.AddDbContext<TestDbContext>();
+
+        // ✨ 使用 EasyCore EFCore Repository
+        builder.Services.EasyCoreEFCoreRepository();
+
+        var app = builder.Build();
+
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseSwagger();
+            app.UseSwaggerUI();
+        }
+
+        app.UseAuthorization();
+        app.MapControllers();
+        app.Run();
     }
+}
+```
+### 2. 🏷️ 实体继承
+EasyCore.EFCoreRepository 提供了一个功能丰富的实体基类 EasyCoreEntity，包含：
+
+   🔄 并发标记
+
+   🗑️ 软删除
+
+   🏢 多租户 ID
+
+```
+// 💡 注意：EasyCoreEntity<TKey> 中的泛型类型为表的主键类型
+public class TestEntity : EasyCoreEntity<Guid>
+{
+    public string Name { get; set; }
+    public int Age { get; set; }
+}
 ```
 
-## 3.仓储类继承
+### 3. 🔧 仓储类继承
+EasyCore.EFCoreRepository 提供了完整的仓储抽象和实现：
 
-EasyCore.EFCoreRepository 提供了一个仓储基类 EfCoreRepository<TDbContext, TEntity> 和仓储抽象 IRepository<TEntity>。
-
-
+#### 仓储接口 📜
 ```
-    public interface ITestEntityRepository : IRepository<TestDbContext，TestEntity>, ITransientDependencie
+public interface ITestEntityRepository : IRepository<TestDbContext, TestEntity>, ITransientDependencie
+{
+    // 💡 ITransientDependencie 为 EasyCore.Dependencie 中的自动注入标记
+}
+```
+
+#### 仓储实现 ⚙️
+```
+public class TestEntityRepository : EfCoreRepository<TestDbContext, TestEntity>, ITestEntityRepository
+{
+    public TestEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) 
+        : base(dbContext, serviceProvider)
     {
-
     }
+}
 ```
-（注：ITransientDependencie为EasyCore.Dependencie中的自动注入细节与抽象的依赖关系）
+### 4.💡 使用仓储
 
+#### 4.1 🎯 基础 CRUD 操作
 ```
-  public class TestEntityRepository : EfCoreRepository<TestDbContext, TestEntity>, ITestEntityRepository
-  {
-      public TestEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
-      {
+[Route("api/[controller]")]
+[ApiController]
+public class RepositoryController : ControllerBase
+{
+    private readonly ITestEntityRepository _repository;
 
-      }
-  }
+    public RepositoryController(ITestEntityRepository repository) => _repository = repository;
+
+    // 🔍 查询
+    [HttpGet]
+    public async Task<TestEntity> Get()
+    {
+        return await _repository.GetAsync(e => e.Name == "Test");
+    }
+
+    // ➕ 新增
+    [HttpPost]
+    public async Task Post()
+    {
+        await _repository.InsertAsync(new TestEntity { 
+            Name = "Test", 
+            Age = 10, 
+            Id = Guid.NewGuid() 
+        }, true);
+    }
+
+    // ✏️ 更新
+    [HttpPut]
+    public async Task Put()
+    {
+        var entity = await _repository.GetAsync(e => e.Name == "Test");
+        entity.Age = 20;
+        await _repository.UpdateAsync(entity, true);
+    }
+
+    // 🗑️ 删除（软删除）
+    [HttpDelete]
+    public async Task Delete()
+    {
+        var entity = await _repository.GetAsync(e => e.Age == 20);
+        entity.IsDeleted = true;
+        await _repository.UpdateAsync(entity, true);
+    }
+}
 ```
 
-## 4.使用仓储
+#### 4.2 📋 完整的 API 列表
 
-### 4.1 增删改查
+EasyCore.EFCoreRepository 提供了丰富的 API 方法：
+
+##### 🔧 过滤器管理
 ```
- [Route("api/[controller]")]
- [ApiController]
- public class RepositoryController : ControllerBase
- {
-     private readonly ITestEntityRepository _repository;
+EfCoreRepository<TDbContext, TEntity> AddFilter(Type filterType);
 
-     public RepositoryController(ITestEntityRepository repository) => _repository = repository;
-
-     [HttpGet]
-     public async Task<TestEntity> Get()
-     {
-         return await _repository.GetAsync(e => e.Name == "Test");
-     }
-
-     [HttpPost]
-     public async Task Post()
-     {
-         await _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Guid = Guid.NewGuid() }, true);
-     }
-
-     [HttpPut]
-     public async Task Put()
-     {
-         var entity = await _repository.GetAsync(e => e.Name == "Test");
-
-         entity.Age = 20;
-
-         await _repository.UpdateAsync(entity, true);
-     }
-
-     [HttpDelete]
-     public async Task Delete()
-     {
-         var entity = await _repository.GetAsync(e => e.Age == 20);
-
-         entity.IsDeleted = true;
-
-         await _repository.UpdateAsync(entity, true);
-     }
- }
+EfCoreRepository<TDbContext, TEntity> RemoveFilter(Type filterType);
 ```
-### 4.2 仓储提供的api
-
+##### ➕ 插入操作
 ```
-/// <summary>
-/// 向仓储添加指定类型的过滤器。
-/// </summary>
-/// <param name="filterType">要添加的过滤器类型。</param>
-/// <returns>应用了过滤器的仓储实例。</returns>
-EfCoreRepository<TDbContext, TEntity> AddFilter(
-    Type filterType);
+Task<TEntity> InsertAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 从仓储中移除指定类型的过滤器。
-/// </summary>
-/// <param name="filterType">要移除的过滤器类型。</param>
-/// <returns>移除了过滤器的仓储实例。</returns>
-EfCoreRepository<TDbContext, TEntity> RemoveFilter(
-    Type filterType);
+TEntity Insert(TEntity entity, bool autoSave = false);
 
-/// <summary>
-/// 插入一个新实体。
-/// </summary>
-/// <param name="entity">要插入的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<TEntity> InsertAsync(
-    TEntity entity, bool autoSave = false,
-    CancellationToken cancellationToken = default);
+Task InsertManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 插入一个新实体。
-/// </summary>
-/// <param name="entity">要插入的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-TEntity Insert(
-    TEntity entity, bool autoSave = false);
+void InsertMany(IEnumerable<TEntity> entities, bool autoSave = false);
+```
+##### ✏️ 更新操作
+```
+Task<TEntity> UpdateAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 插入多个实体。
-/// </summary>
-/// <param name="entities">要插入的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task InsertManyAsync(
-    IEnumerable<TEntity> entities, bool autoSave = false,
-    CancellationToken cancellationToken = default);
+TEntity Update(TEntity entity, bool autoSave = false);
 
-/// <summary>
-/// 插入多个实体。
-/// </summary>
-/// <param name="entities">要插入的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void InsertMany(
-    IEnumerable<TEntity> entities, bool autoSave = false);
+Task UpdateManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 更新一个已存在的实体。
-/// </summary>
-/// <param name="entity">要更新的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<TEntity> UpdateAsync(
-    TEntity entity, bool autoSave = false,
-    CancellationToken cancellationToken = default);
+void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false);
+```
+##### 🗑️ 删除操作
+```
+Task DeleteAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 更新一个已存在的实体。
-/// </summary>
-/// <param name="entity">要更新的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-TEntity Update(
-    TEntity entity, bool autoSave = false);
+void Delete(TEntity entity, bool autoSave = false);
 
-/// <summary>
-/// 更新多个实体。
-/// </summary>
-/// <param name="entities">要更新的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task UpdateManyAsync(
-    IEnumerable<TEntity> entities, bool autoSave = false,
-    CancellationToken cancellationToken = default);
+Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 更新多个实体。
-/// </summary>
-/// <param name="entities">要更新的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void UpdateMany(
-    IEnumerable<TEntity> entities, bool autoSave = false);
-
-/// <summary>
-/// 删除一个实体。
-/// </summary>
-/// <param name="entity">要删除的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task DeleteAsync(
-    TEntity entity, bool autoSave = false,
-    CancellationToken cancellationToken = default);
-
-/// <summary>
-/// 删除一个实体。
-/// </summary>
-/// <param name="entity">要删除的实体。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void Delete(
-    TEntity entity, bool autoSave = false);
-
-/// <summary>
-/// 删除多个实体。
-/// </summary>
-/// <param name="entities">要删除的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task DeleteManyAsync(
-    IEnumerable<TEntity> entities, bool autoSave = false,
-    CancellationToken cancellationToken = default);
-
-/// <summary>
-/// 删除多个实体。
-/// </summary>
-/// <param name="entities">要删除的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void DeleteMany(
-    IEnumerable<TEntity> entities, bool autoSave = false);
-
-/// <summary>
-/// 保存所有待处理的更改。
-/// </summary>
-/// <param name="cancellationToken">取消标记。</param>
+void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false);
+```
+##### 💾 保存操作
+```
 Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 保存所有待处理的更改。
-/// </summary>
 int SaveChanges();
+```
+##### 🔍 查询操作
+```
+// 获取列表
+Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取所有实体。
-/// </summary>
-/// <param name="includeDetails">是否包含导航属性。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<List<TEntity>> GetListAsync(
-    bool includeDetails = false,
-    CancellationToken cancellationToken = default);
+List<TEntity> GetList(bool includeDetails = false);
 
-/// <summary>
-/// 获取所有实体。
-/// </summary>
-/// <param name="includeDetails">是否包含导航属性。</param>
-List<TEntity> GetList(
-    bool includeDetails = false);
+// 数量统计
+Task<long> GetCountAsync(CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取实体总数量。
-/// </summary>
-/// <param name="cancellationToken">取消标记。</param>
-Task<long> GetCountAsync(
-    CancellationToken cancellationToken = default);
-
-/// <summary>
-/// 获取实体总数量。
-/// </summary>
 long GetCount();
 
-/// <summary>
-/// 获取符合条件的实体数量。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<long> GetCountAsync(
-    Expression<Func<TEntity, bool>> predicate,
-    CancellationToken cancellationToken = default);
+Task<long> GetCountAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取符合条件的实体数量。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-long GetCount(
-    Expression<Func<TEntity, bool>> predicate);
+long GetCount(Expression<Func<TEntity, bool>> predicate);
 
-/// <summary>
-/// 获取分页列表。
-/// </summary>
-/// <param name="skipCount">跳过的记录数。</param>
-/// <param name="maxResultCount">返回的最大记录数。</param>
-/// <param name="sorting">排序表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<List<TEntity>> GetPagedListAsync(
-    int skipCount,
-    int maxResultCount,
-    string? sorting = null,
-    bool includeDetails = false,
-    CancellationToken cancellationToken = default);
+// 分页查询
+Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取分页列表。
-/// </summary>
-/// <param name="skipCount">跳过的记录数。</param>
-/// <param name="maxResultCount">返回的最大记录数。</param>
-/// <param name="sorting">排序表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-List<TEntity> GetPagedList(
-    int skipCount,
-    int maxResultCount,
-    string? sorting = null,
-    bool includeDetails = false);
+List<TEntity> GetPagedList(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false);
 
-/// <summary>
-/// 获取符合条件的实体列表。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<List<TEntity>> GetListAsync(
-    Expression<Func<TEntity, bool>> predicate,
-    bool includeDetails = false,
-    CancellationToken cancellationToken = default);
+// 条件查询
+Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取符合条件的实体列表。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-List<TEntity> GetList(
-    Expression<Func<TEntity, bool>> predicate,
-    bool includeDetails = false);
+List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
 
-/// <summary>
-/// 获取符合条件的单个实体。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task<TEntity> GetAsync(
-    Expression<Func<TEntity, bool>> predicate,
-    bool includeDetails = false,
-    CancellationToken cancellationToken = default);
+// 单实体查询
+Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
 
-/// <summary>
-/// 获取符合条件的单个实体。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="includeDetails">是否包含导航属性。</param>
-TEntity? Get(
-    Expression<Func<TEntity, bool>> predicate,
-    bool includeDetails = false);
-
-/// <summary>
-/// 删除符合条件的实体。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task DeleteAsync(
-    Expression<Func<TEntity, bool>> predicate,
-    bool autoSave = false,
-    CancellationToken cancellationToken = default);
-
-/// <summary>
-/// 删除符合条件的实体。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void Delete(
-    Expression<Func<TEntity, bool>> predicate,
-    bool autoSave = false);
-
-/// <summary>
-/// 直接删除符合条件的实体，不应用软删除或其他过滤器。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task DeleteDirectAsync(
-    Expression<Func<TEntity, bool>> predicate,
-    CancellationToken cancellationToken = default);
-
-/// <summary>
-/// 直接删除符合条件的实体，不应用软删除或其他过滤器。
-/// </summary>
-/// <param name="predicate">过滤条件表达式。</param>
-void DeleteDirect(
-    Expression<Func<TEntity, bool>> predicate);
-
-/// <summary>
-/// 直接删除指定实体集合，不应用任何过滤器。
-/// </summary>
-/// <param name="entities">要删除的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-void DeleteManyDirect(
-    IEnumerable<TEntity> entities,
-    bool autoSave = false);
-
-/// <summary>
-/// 直接删除指定实体集合，不应用任何过滤器。
-/// </summary>
-/// <param name="entities">要删除的实体集合。</param>
-/// <param name="autoSave">是否自动保存更改。</param>
-/// <param name="cancellationToken">取消标记。</param>
-Task DeleteManyDirectAsync(
-    IEnumerable<TEntity> entities,
-    bool autoSave = false,
-    CancellationToken cancellationToken = default);
-
+TEntity? Get(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
 ```
-
-
-## 5.WhereIf支持
-
-EasyCore.EFCoreRepository提供一个IQueryable<T>.WhereIf的支持。
-
+##### ⚡ 直接删除操作
 ```
- IQueryable<T>.WhereIf(xxx!= null, x => x.xxx == xxx)
-```
-上述代码中只有 xxx!= null 时，才会执行 x => x.xxx == xxx 否则继续执行后面的代码。
+Task DeleteDirectAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
-## 6.数据过滤器
-EasyCore.EFCoreRepository提供了两个数据过滤器，ISoftDeleteFilter和ITenantFilter分别代表软删除和租户过滤器。用户可根据自身需求编写自定义过滤器
+void DeleteDirect(Expression<Func<TEntity, bool>> predicate);
 
+void DeleteManyDirect(IEnumerable<TEntity> entities, bool autoSave = false);
+
+Task DeleteManyDirectAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default);
 ```
-    public class CustomDataFilter : IDataFilter, ITransientDependencie
+### 5.🎛️ 高级功能
+#### 🎯 WhereIf 支持
+EasyCore.EFCoreRepository 提供了智能的条件查询支持：
+```
+IQueryable<T>.WhereIf(xxx != null, x => x.xxx == xxx)
+```
+✨ 特性：只有当 xxx != null 条件满足时，才会执行后面的过滤条件，否则继续执行后续代码。
+
+### 6. 🔍 数据过滤器
+EasyCore.EFCoreRepository 内置了两个实用的数据过滤器：
+
+🗑️ ISoftDeleteFilter - 软删除过滤器
+
+🏢 ITenantFilter - 租户过滤器
+
+#### 自定义过滤器示例 🎨：
+```
+public class CustomDataFilter : IDataFilter, ITransientDependencie
+{
+    public IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> query) where TEntity : class, IEntity
     {
-        public IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> query) where TEntity : class, IEntity
+        query = query.Where(e => ((e as TestEntity)!.Name == "Test"));
+        return query;
+    }
+}
+```
+#### 动态过滤器管理 ⚡：
+```
+_repository
+    .RemoveFilter(typeof(ITenantFilter))      // 🗑️ 移除租户过滤器
+    .RemoveFilter(typeof(ISoftDeleteFilter))  // 🗑️ 移除软删除过滤器  
+    .AddFilter(typeof(CustomDataFilter))      // ➕ 添加自定义过滤器
+    .Delete(e => e.Name == "Test1", true);    // 🎯 执行操作
+```
+
+# 🔄 EasyCore.EFCoreUnitOfWork
+
+## 🎯 工作单元模式
+
+EasyCore.EFCoreUnitOfWork 提供了 SaveChangesAttribute 特性，让数据持久化变得简单高效！✨
+
+### 1. 📝 Program 注册
+
+```
+public class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddSwaggerGen();
+        builder.Services.EasyCoreDependencie();
+        builder.Services.AddDbContext<TestDbContext>();
+
+        // ✨ 使用 EasyCore EFCore Repository
+        builder.Services.EasyCoreEFCoreRepository();
+        // 🔄 使用 EasyCore EFCore UnitOfWork
+        builder.Services.EasyCoreEFCoreUnitOfWork();
+
+        var app = builder.Build();
+
+        if (app.Environment.IsDevelopment())
         {
-            query = query.Where(e => ((e as TestEntity)!.Name == "Test"));
-
-            return query;
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
+
+        app.UseAuthorization();
+        app.MapControllers();
+        app.Run();
     }
-```
-删除或新增过滤器
-```
-    _repository
-      .RemoveFilter(typeof(ITenantFilter))
-      .RemoveFilter(typeof(ISoftDeleteFilter))
-      .AddFilter(typeof(CustomDataFilter))
-      .Delete(e => e.Name == "Test1", true);
+}
 ```
 
-# EasyCore.EFCoreUnitOfWork
-
-EasyCore.EFCoreUnitOfWork 提供了一个SaveChangesAttribute特性，需要保存至数据库操作的方法或类加上SaveChangesAttribute特性，数据即可自动保存至数据库中。
-
-## 1.Program注册
+### 2. 📜 抽象接口定义
 
 ```
- public class Program
- {
-     public static void Main(string[] args)
-     {
-         var builder = WebApplication.CreateBuilder(args);
+public interface IUnitOfWorkTest : ITransientDependencie
+{
+    /// <summary>
+    /// 🎯 测试实体工作单元
+    /// </summary>
+    Task<TestEntity> EntityUnitOfWork();
 
-         builder.Services.AddControllers();
-         builder.Services.AddEndpointsApiExplorer();
-         builder.Services.AddSwaggerGen();
-         builder.Services.EasyCoreDependencie();
-         builder.Services.AddDbContext<TestDbContext>();
+    /// <summary>
+    /// 💰 测试事务工作单元  
+    /// </summary>
+    Task<TestEntity> Transaction();
+}
 
-         // Use EasyCore EFCore Repository
-         builder.Services.EasyCoreEFCoreRepository();
-         // Use EasyCore EFCore UnitOfWork
-         builder.Services.EasyCoreEFCoreUnitOfWork();
-
-         var app = builder.Build();
-
-         if (app.Environment.IsDevelopment())
-         {
-             app.UseSwagger();
-             app.UseSwaggerUI();
-         }
-
-         app.UseAuthorization();
-
-
-         app.MapControllers();
-
-         app.Run();
-     }
- }
-```
-## 2.抽象接口
-
-```
-    public interface IUnitOfWorkTest : ITransientDependencie
-    {
-        /// <summary>
-        /// Test the entity unit of work.
-        /// </summary>
-        /// <returns></returns>
-        Task<TestEntity> EntityUnitOfWork();
-
-        /// <summary>
-        /// Test the transaction unit of work.
-        /// </summary>
-        /// <returns></returns>
-        Task<TestEntity> Transaction();
-    }
-
-    public interface IUnitOfWorkTest2 : ITransientDependencie
-    {
-        /// <summary>
-        /// Test the entity unit of work.
-        /// </summary>
-        /// <returns></returns>
-        Task<TestEntity> EntityUnitOfWork();
-    }
+public interface IUnitOfWorkTest2 : ITransientDependencie
+{
+    /// <summary>
+    /// 🎯 测试实体工作单元
+    /// </summary>
+    Task<TestEntity> EntityUnitOfWork();
+}
 ```
 
-## 3.类或方法上继承 SaveChangesAttribute特性
+### 3. 🏷️ SaveChangesAttribute 特性使用
+
+#### 方法级别使用 🎯：
 
 ```
-/// <summary>
-/// Attributes on methods.
-/// </summary>
 public class UnitOfWorkTest : IUnitOfWorkTest
 {
     private readonly ITestEntityRepository _repository;
@@ -544,15 +325,18 @@ public class UnitOfWorkTest : IUnitOfWorkTest
     public UnitOfWorkTest(ITestEntityRepository repository) => _repository = repository;
 
     [SaveChanges(typeof(TestDbContext))]
-    public Task<TestEntity> EntityUnitOfWork() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+    public Task<TestEntity> EntityUnitOfWork() 
+        => _repository.InsertAsync(new TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
 
-    [SaveChanges(true, typeof(TestDbContext))]
-    public Task<TestEntity> Transaction() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+    [SaveChanges(true, typeof(TestDbContext))]  // 💰 启用事务
+    public Task<TestEntity> Transaction() 
+        => _repository.InsertAsync(new TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
 }
+```
 
-/// <summary>
-/// Attributes on class.
-/// </summary>
+#### 类级别使用 🏛️：
+
+```
 [SaveChanges(typeof(TestDbContext))]
 public class UnitOfWorkTest2 : IUnitOfWorkTest2
 {
@@ -560,75 +344,99 @@ public class UnitOfWorkTest2 : IUnitOfWorkTest2
 
     public UnitOfWorkTest2(ITestEntityRepository repository) => _repository = repository;
 
-    public Task<TestEntity> EntityUnitOfWork() => _repository.InsertAsync(new EFCore.Entity.TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
+    public Task<TestEntity> EntityUnitOfWork() 
+        => _repository.InsertAsync(new TestEntity { Name = "Test", Age = 10, Id = Guid.NewGuid() });
 }
 ```
 
- [SaveChanges(true, typeof(TestDbContext))] 特性中，第一个参数表示是否为数据库事务，为True时执行事务保存。第二个参数为所保存数据库的DbContext对象。
+#### 💡 特性参数说明：
 
-# EasyCore.EFCoreEntityChange
+第一个参数：是否为数据库事务，为 true 时执行事务保存 💰
 
-EasyCore.EFCoreEntityChange 提供了实体变更追踪。
+第二个参数：指定要保存的数据库 DbContext 对象
 
-## 1.Program注册
+# 🔍 EasyCore.EFCoreEntityChange
+## 📊 实体变更追踪
+EasyCore.EFCoreEntityChange 提供了强大的实体变更追踪能力！🕵️
+
+### 1. 📝 Program 注册
 
 ```
 builder.Services.AddDbContext<TestDbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
 });
 
 builder.Services.AddDbContext<Test2DbContext>(op =>
 {
-    op.UseEasyCoreEFCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+    op.UseEasyCoreEFCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
 });
 
-// Use EasyCore Entity Change
+// 🔧 启用 EasyCore 实体变更服务
 builder.Services.EasyCoreEFCoreEntityChange();
 ```
 
-## 2.使用实体追踪
+### 2. 🎯 使用实体变更追踪
 
 ```
-   public class EntityChange : IEntityUpdatedChangeHandler<TestEntity, TestEntity>, IEntityDeletedChangeHandler<TestEntity>, IEntityAddedChangeHandler<TestEntity>
-   {
-       private readonly ILogger<EntityChange> _logger;
+public class EntityChange : 
+    IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
+    IEntityDeletedChangeHandler<TestEntity>, 
+    IEntityAddedChangeHandler<TestEntity>
+{
+    private readonly ILogger<EntityChange> _logger;
 
-       public EntityChange(ILogger<EntityChange> logger) => _logger = logger;
+    public EntityChange(ILogger<EntityChange> logger) => _logger = logger;
 
-       public async Task OnAddedAsync(TestEntity entity)
-       {
-           _logger.LogInformation($"Entity added: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
+    // ➕ 实体新增处理
+    public async Task OnAddedAsync(TestEntity entity)
+    {
+        _logger.LogInformation($"🆕 实体新增: Id:{entity.Id}; Name:{entity.Name}; Age:{entity.Age};");
+        await Task.CompletedTask;
+    }
 
-           await Task.CompletedTask;
-       }
+    // 🗑️ 实体删除处理  
+    public async Task OnDeletedAsync(TestEntity entity)
+    {
+        _logger.LogInformation($"🗑️ 实体删除: Id:{entity.Id}; Name:{entity.Name}; Age:{entity.Age};");
+        await Task.CompletedTask;
+    }
 
-       public async Task OnDeletedAsync(TestEntity entity)
-       {
-           _logger.LogInformation($"Entity deleted: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
-
-           await Task.CompletedTask;
-       }
-
-       public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
-       {
-           _logger.LogInformation($"Entity updated: Id:{oldEntity.Id} --> Id:{currentEntity.Id}; Name:{oldEntity.Name} --> Name:{currentEntity.Name};Age:{oldEntity.Age} --> Age:{currentEntity.Age};");
-
-           return Task.CompletedTask;
-       }
-   }
+    // ✏️ 实体更新处理
+    public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
+    {
+        _logger.LogInformation($"✏️ 实体更新: " +
+            $"Id:{oldEntity.Id} → {currentEntity.Id}; " +
+            $"Name:{oldEntity.Name} → {currentEntity.Name}; " +
+            $"Age:{oldEntity.Age} → {currentEntity.Age};");
+        return Task.CompletedTask;
+    }
+}
 ```
-EasyCore.EFCoreEntityChange 提供了三个接口 IEntityAddedChangeHandler<TEntity>， IEntityDeletedChangeHandler<TEntity> ，IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> 分别对应实体的增删改。
 
-当实体增删改完成时，就会自动调用并执行接口方法。
+#### 🎯 支持的变更接口：
 
+```
+IEntityAddedChangeHandler<TEntity> - 实体新增处理器 ➕
 
+IEntityDeletedChangeHandler<TEntity> - 实体删除处理器 🗑️
 
+IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - 实体更新处理器 ✏️
+```
 
+#### ✨ 特性：当实体完成增删改操作时，系统会自动调用对应的接口方法，实现无缝的变更追踪！
 
+### 🎉 总结
+EasyCore.EFCoreRepository 系列组件提供了：
 
+🏗️ 完整的仓储模式实现
 
+🔄 智能的工作单元管理
 
+🔍 强大的实体变更追踪
 
+🎯 丰富的查询和过滤功能
 
+⚡ 高性能的数据访问
 
+让您的数据访问层更加 优雅、强大、易维护！✨
