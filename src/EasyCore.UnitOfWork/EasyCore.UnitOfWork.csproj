@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageIcon>EasyCoreLogo.png</PackageIcon>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>README.en-US.md</PackageReadmeFile>
     <IncludeSymbols>False</IncludeSymbols>
     <RepositoryType>gitee</RepositoryType>
     <Authors>WZHY</Authors>
@@ -16,7 +16,7 @@
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
     <AssemblyVersion>8.0.0.0</AssemblyVersion>
     <FileVersion>8.0.0.0</FileVersion>
-    <Version>8.0.1</Version>
+    <Version>8.0.2</Version>
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
@@ -25,7 +25,7 @@
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
-    <None Include="..\..\README.md">
+    <None Include="..\..\README.en-US.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
