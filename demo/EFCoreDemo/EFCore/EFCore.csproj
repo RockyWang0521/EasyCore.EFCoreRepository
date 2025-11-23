@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\EasyCore.EFCoreRepository\EasyCore.EFCoreRepository.csproj" />
+    <ProjectReference Include="..\..\..\src\EasyCore.EntityChange\EasyCore.EntityChange.csproj" />
   </ItemGroup>
 
 

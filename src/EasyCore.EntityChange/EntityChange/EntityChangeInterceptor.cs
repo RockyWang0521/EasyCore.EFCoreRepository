@@ -58,7 +58,7 @@ namespace EasyCore.EntityChange.EntityChange
 
                 if (entry.State == EntityState.Modified)
                 {
-                    var handlerType = typeof(IEntityUpdatedChangeHandler<,>).MakeGenericType(entityType, entityType);
+                    var handlerType = typeof(IEntityUpdatedChangeHandler<>).MakeGenericType(entityType);
 
                     var handlers = _serviceProvider.GetServices(handlerType);
 
@@ -71,7 +71,7 @@ namespace EasyCore.EntityChange.EntityChange
                         try
                         {
                             await (Task)handlerType
-                               .GetMethod(nameof(IEntityUpdatedChangeHandler<object, object>.OnUpdatedAsync))!
+                               .GetMethod(nameof(IEntityUpdatedChangeHandler<object>.OnUpdatedAsync))!
                                .Invoke(handler, new[] { originalEntity, currentEntity })!;
                         }
                         catch

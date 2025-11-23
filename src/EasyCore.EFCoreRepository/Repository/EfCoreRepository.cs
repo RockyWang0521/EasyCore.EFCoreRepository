@@ -1,8 +1,11 @@
 ﻿using EasyCore.EFCoreRepository.DataFilter;
 using EasyCore.EFCoreRepository.EntityBase;
+using EasyCore.EFCoreRepository.EntityChangeEvent;
 using EasyCore.EFCoreRepository.IRepository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
@@ -26,6 +29,7 @@ namespace EasyCore.EFCoreRepository.Repository
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;
             _dataFilters = GetDataFilters(dbContext.Set<TEntity>().AsQueryable());
+            _dataFilters = OnApplyPersistingFilters(_dataFilters);
         }
 
         #region Filter
@@ -38,7 +42,10 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var clone = Clone();
 
-            clone._dataFilters.Add(filter);
+            if (!_dataFilters.Any(f => f.GetType().FullName == filter.GetType().FullName))
+            {
+                _dataFilters.Add(filter);
+            }
 
             return clone;
         }
@@ -54,6 +61,32 @@ namespace EasyCore.EFCoreRepository.Repository
             clone._dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
 
             return clone;
+        }
+
+        public virtual List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
+        {
+            return dataFilters;
+        }
+
+        public List<IDataFilter> AddOnce(List<IDataFilter> dataFilters, Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            if (!dataFilters.Contains(filter))
+            {
+                dataFilters.Add(filter);
+            }
+
+            return dataFilters;
+        }
+
+        public virtual List<IDataFilter> RemoveIfExistsFilter(List<IDataFilter> dataFilters, Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+
+            return dataFilters;
         }
 
         #endregion
@@ -634,7 +667,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
         #endregion
 
-        #region Other
+        #region SaveChange
 
         public int SaveChanges()
         {
@@ -649,6 +682,10 @@ namespace EasyCore.EFCoreRepository.Repository
 
             return await dbContext.SaveChangesAsync(cancellationToken);
         }
+
+        #endregion
+
+        #region Aiding Method
 
         public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
 

@@ -26,6 +26,7 @@ namespace EasyCore.MongoDbRepository.Repository
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;
             _dataFilters = GetDataFilters(dbContext.Set<TEntity>().AsQueryable());
+            _dataFilters = OnApplyPersistingFilters(_dataFilters);
         }
 
         #region Filter
@@ -54,6 +55,32 @@ namespace EasyCore.MongoDbRepository.Repository
             clone._dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
 
             return clone;
+        }
+
+        public virtual List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
+        {
+            return dataFilters;
+        }
+
+        public List<IDataFilter> AddOnce(List<IDataFilter> dataFilters, Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            if (!dataFilters.Contains(filter))
+            {
+                dataFilters.Add(filter);
+            }
+
+            return dataFilters;
+        }
+
+        public virtual List<IDataFilter> RemoveIfExistsFilter(List<IDataFilter> dataFilters, Type filterType)
+        {
+            var filter = base.GetDataFilter(filterType);
+
+            dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+
+            return dataFilters;
         }
 
         #endregion
@@ -618,7 +645,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
         #endregion
 
-        #region Other
+        #region  Aiding Method
 
         public int SaveChanges()
         {

@@ -46,9 +46,9 @@ namespace EasyCore.EntityChange
 
                             continue;
                         }
-                        else if (@interface.GetGenericTypeDefinition() == typeof(IEntityUpdatedChangeHandler<,>))
+                        else if (@interface.GetGenericTypeDefinition() == typeof(IEntityUpdatedChangeHandler<>))
                         {
-                            services.AddScoped(typeof(IEntityUpdatedChangeHandler<,>).MakeGenericType(@interface.GetGenericArguments()[0], @interface.GetGenericArguments()[1]), type);
+                            services.AddScoped(typeof(IEntityUpdatedChangeHandler<>).MakeGenericType(@interface.GetGenericArguments()[0]), type);
 
                             continue;
                         }
@@ -63,7 +63,7 @@ namespace EasyCore.EntityChange
             }
         }
 
-        public static void UseEasyCoreEntityChange(this DbContextOptionsBuilder builder, IServiceCollection services) => 
+        public static void UseEasyCoreEntityChange(this DbContextOptionsBuilder builder, IServiceCollection services) =>
             builder.AddInterceptors(new EntityChangeInterceptor(services.BuildServiceProvider()));
     }
 }

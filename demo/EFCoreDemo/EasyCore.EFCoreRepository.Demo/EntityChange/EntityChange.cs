@@ -3,7 +3,7 @@ using EFCore.Entity;
 
 namespace EasyCore.EFCoreRepository.Demo.EntityChange
 {
-    public class EntityChange : IEntityUpdatedChangeHandler<TestEntity, TestEntity>, IEntityDeletedChangeHandler<TestEntity>, IEntityAddedChangeHandler<TestEntity>
+    public class EntityChange : IEntityUpdatedChangeHandler<TestEntity>, IEntityDeletedChangeHandler<TestEntity>, IEntityAddedChangeHandler<TestEntity>
     {
         private readonly ILogger<EntityChange> _logger;
 
