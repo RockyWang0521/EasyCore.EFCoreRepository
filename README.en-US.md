@@ -405,6 +405,79 @@ IEntityDeletedChangeHandler<TEntity> - Entity Deleted Handler 🗑️
 
 IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - Entity Updated Handler ✏️
 ```
+# 💎 Custom Entity And Custom Data Filter
+
+## 1.  User-Defined Database Entity🦄
+
+Users can configure custom user entities based on their specific project requirements.
+
+```
+    public class CustomEntity : EasyCoreEntity<Guid>
+    {
+        public string CreateId{ get; set; }
+    }
+
+    public class TestCustomEntity : CustomEntity
+    {
+
+    }
+```
+
+The CustomEntity represents a user-defined entity object. This custom entity contains a CreateId field. During the save operation, the IEntityAddedChangeHandler<TEntity> interface can be utilized to automatically save the current user's ID.
+
+
+```
+    public class TestCustomEntityRepository : EfCoreRepository<TestDbContext, TestCustomEntity>,ITestCustomEntityRepository,IEntityAddedChangeHandler<TestCustomEntity>
+    {
+        public TestCustomEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+        {
+
+        }
+
+        public async Task OnAddedAsync(TestCustomEntity entity)
+        {
+            if (entity is CustomEntity customEntity)
+            {
+                customEntity.CreateId = "Test";
+            }
+
+            await Task.CompletedTask;
+        }
+    }
+```
+## 2.  User-defined Data Filters🎁
+
+Users can configure custom data filters based on their specific project requirements.
+
+
+```
+    public class TestEntityRepository :
+        EfCoreRepository<TestDbContext, TestEntity>,
+        ITestEntityRepository
+    {
+        public TestEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+        {
+
+        }
+
+        /// <summary>
+        /// Applies permanent data filters before persisting entities (Insert/Update/Delete).
+        /// This method is called during the persistence pipeline to enforce global filters.
+        /// </summary>
+        /// <param name="dataFilters">The list of data filters that are currently scheduled for execution.</param>
+        /// <returns>The updated list of data filters after applying permanent filter rules.</returns>
+        public override List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
+        {
+            AddOnce(dataFilters, typeof(CustomDataFilter));
+
+            RemoveIfExistsFilter(dataFilters, typeof(CustomDataFilter));
+
+            return dataFilters;
+        }
+    }
+```
+Override the OnApplyPersistingFilters method to add or modify persistent filter settings.
+
 #### ✨ Feature: When entity add, delete, or update operations are completed, the system automatically calls the corresponding interface methods, enabling seamless change tracking!
 
 # 🎉 Summary
