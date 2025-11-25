@@ -426,6 +426,77 @@ IEntityDeletedChangeHandler<TEntity> - 实体删除处理器 🗑️
 
 IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - 实体更新处理器 ✏️
 ```
+# 💎 Custom Entity 和 Custom Data Filter
+
+## 1.  用户自定义数据库实体🦄
+
+用户可根据自身项目进行自定义用户实体配置
+
+```
+    public class CustomEntity : EasyCoreEntity<Guid>
+    {
+        public string CreateId{ get; set; }
+    }
+
+    public class TestCustomEntity : CustomEntity
+    {
+
+    }
+```
+CustomEntity为用户自定义实体对象，自定义实体中存在CreateId字段。保存时可用IEntityAddedChangeHandler<TEntity> 自动保存当前用户id。
+
+```
+    public class TestCustomEntityRepository : EfCoreRepository<TestDbContext, TestCustomEntity>,ITestCustomEntityRepository,IEntityAddedChangeHandler<TestCustomEntity>
+    {
+        public TestCustomEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+        {
+
+        }
+
+        public async Task OnAddedAsync(TestCustomEntity entity)
+        {
+            if (entity is CustomEntity customEntity)
+            {
+                customEntity.CreateId = "Test";
+            }
+
+            await Task.CompletedTask;
+        }
+    }
+```
+## 2.  用户自定义数据过滤器🎁
+
+用户可根据自身项目进行自定义数据过滤器配置
+
+
+```
+    public class TestEntityRepository :
+        EfCoreRepository<TestDbContext, TestEntity>,
+        ITestEntityRepository
+    {
+        public TestEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+        {
+
+        }
+
+        /// <summary>
+        /// Applies permanent data filters before persisting entities (Insert/Update/Delete).
+        /// This method is called during the persistence pipeline to enforce global filters.
+        /// </summary>
+        /// <param name="dataFilters">The list of data filters that are currently scheduled for execution.</param>
+        /// <returns>The updated list of data filters after applying permanent filter rules.</returns>
+        public override List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
+        {
+            AddOnce(dataFilters, typeof(CustomDataFilter));
+
+            RemoveIfExistsFilter(dataFilters, typeof(CustomDataFilter));
+
+            return dataFilters;
+        }
+    }
+```
+重写OnApplyPersistingFilters方法，添加或修改永久过滤器设置。
+
 
 #### ✨ 特性：当实体完成增删改操作时，系统会自动调用对应的接口方法，实现无缝的变更追踪！
 
