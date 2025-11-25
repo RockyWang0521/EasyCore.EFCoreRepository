@@ -276,7 +276,7 @@ builder.Services.EasyCoreEntityChange();
 
 ```
 public class EntityChange : 
-    IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
+    IEntityUpdatedChangeHandler<TestEntity>, 
     IEntityDeletedChangeHandler<TestEntity>, 
     IEntityAddedChangeHandler<TestEntity>
 {
@@ -309,6 +309,16 @@ public class EntityChange :
     }
 }
 ```
+#### 🎯 支持的变更接口：
+
+```
+IEntityAddedChangeHandler<TEntity> - 实体新增处理器 ➕
+
+IEntityDeletedChangeHandler<TEntity> - 实体删除处理器 🗑️
+
+IEntityUpdatedChangeHandler<TEntity> - 实体更新处理器 ✏️
+```
+
 # 💎 Custom Entity 和 Custom Data Filter
 
 ## 1.  用户自定义数据库实体🦄
