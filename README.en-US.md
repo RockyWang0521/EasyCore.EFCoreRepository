@@ -364,7 +364,7 @@ builder.Services.EasyCoreEntityChange();
 ### 2. 🎯 Using Entity Change Tracking
 ```
 public class EntityChange : 
-    IEntityUpdatedChangeHandler<TestEntity, TestEntity>, 
+    IEntityUpdatedChangeHandler<TestEntity>, 
     IEntityDeletedChangeHandler<TestEntity>, 
     IEntityAddedChangeHandler<TestEntity>
 {
@@ -403,7 +403,7 @@ IEntityAddedChangeHandler<TEntity> - Entity Added Handler ➕
 
 IEntityDeletedChangeHandler<TEntity> - Entity Deleted Handler 🗑️
 
-IEntityUpdatedChangeHandler<TOriginalEntity, TCurrentEntity> - Entity Updated Handler ✏️
+IEntityUpdatedChangeHandler<TEntity> - Entity Updated Handler ✏️
 ```
 # 💎 Custom Entity And Custom Data Filter
 
