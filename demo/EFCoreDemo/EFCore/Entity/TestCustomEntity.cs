@@ -1,4 +1,5 @@
-﻿namespace EFCore.Entity
+﻿
+namespace EFCore.Entity
 {
     public class TestCustomEntity : CustomEntity
     {

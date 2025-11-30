@@ -1,19 +1,19 @@
-﻿using EasyCore.EFCoreRepository.DataFilter;
-using EasyCore.EFCoreRepository.EntityBase;
-using EasyCore.EFCoreRepository.IRepository;
+﻿using EasyCore.MongoDbRepository.DataFilter;
+using EasyCore.MongoDbRepository.EntityBase;
+using EasyCore.MongoDbRepository.IRepository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
 
-namespace EasyCore.EFCoreRepository.Repository
+namespace EasyCore.MongoDbRepository.Repository
 {
     /// <summary>
     /// Base repository for entity framework core.
     /// </summary>
     /// <typeparam name="TDbContext">DbContext</typeparam>
     /// <typeparam name="TEntity">Entity</typeparam>
-    public class EfCoreRepository<TDbContext, TEntity> : BaseEfCoreRepository, IEfCoreRepository<TDbContext, TEntity>
+    public class MongoDbRepository<TDbContext, TEntity> : BaseMongoDbRepository, IMongoDbRepository<TDbContext, TEntity>
            where TDbContext : DbContext
            where TEntity : class, IEntity
     {
@@ -21,7 +21,7 @@ namespace EasyCore.EFCoreRepository.Repository
         private readonly IServiceProvider _serviceProvider;
         private List<IDataFilter> _dataFilters = new List<IDataFilter>();
 
-        public EfCoreRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(serviceProvider)
+        public MongoDbRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(serviceProvider)
         {
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;
@@ -31,7 +31,7 @@ namespace EasyCore.EFCoreRepository.Repository
 
         #region Filter
 
-        public virtual EfCoreRepository<TDbContext, TEntity> AddFilter(Type filterType)
+        public virtual MongoDbRepository<TDbContext, TEntity> AddFilter(Type filterType)
         {
             var filter = base.GetDataFilter(filterType);
 
@@ -39,15 +39,12 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var clone = Clone();
 
-            if (!_dataFilters.Any(f => f.GetType().FullName == filter.GetType().FullName))
-            {
-                _dataFilters.Add(filter);
-            }
+            clone._dataFilters.Add(filter);
 
             return clone;
         }
 
-        public virtual EfCoreRepository<TDbContext, TEntity> RemoveFilter(Type filterType)
+        public virtual MongoDbRepository<TDbContext, TEntity> RemoveFilter(Type filterType)
         {
             var filter = base.GetDataFilter(filterType);
 
@@ -88,25 +85,6 @@ namespace EasyCore.EFCoreRepository.Repository
 
         #endregion
 
-        #region Entity Lifecycle Pre-Processing
-
-        public virtual void OnBeforeAdd(TEntity entity)
-        {
-
-        }
-
-        public virtual void OnBeforeUpdate(TEntity entity)
-        {
-
-        }
-
-        public virtual void OnBeforeDelete(TEntity entity)
-        {
-
-        }
-
-        #endregion
-
         #region Delete
 
         public virtual void Delete([NotNull] Expression<Func<TEntity, bool>> predicate, bool autoSave = false)
@@ -129,8 +107,6 @@ namespace EasyCore.EFCoreRepository.Repository
             if (entity is IEntitySoftDelete entityEsd)
             {
                 entityEsd.IsDeleted = true;
-
-                OnBeforeDelete(entity);
 
                 if (autoSave) dbContext.SaveChanges();
             }
@@ -156,8 +132,6 @@ namespace EasyCore.EFCoreRepository.Repository
             if (entity is IEntitySoftDelete entityEsd)
             {
                 entityEsd.IsDeleted = true;
-
-                OnBeforeDelete(entity);
 
                 if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -227,21 +201,18 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            foreach (var entity in entities)
+            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
             {
-                if (entity is IEntitySoftDelete entitySoftDelete)
-                {
-                    entitySoftDelete.IsDeleted = true;
+                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
 
-                    OnBeforeDelete(entity);
-                }
+                if (autoSave) dbContext.SaveChanges();
             }
-
-            if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
@@ -254,17 +225,12 @@ namespace EasyCore.EFCoreRepository.Repository
 
             TDbContext dbContext = GetDbContext();
 
-            foreach (var entity in entities)
+            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
             {
-                if (entity is IEntitySoftDelete entitySoftDelete)
-                {
-                    entitySoftDelete.IsDeleted = true;
+                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
 
-                    OnBeforeDelete(entity);
-                }
+                if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
             }
-
-            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         #endregion
@@ -489,15 +455,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var savedEntity = dbContext.Set<TEntity>().Add(entity).Entity;
 
-            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
-
             if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
             if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
-
-            OnBeforeAdd(entity);
 
             if (autoSave) dbContext.SaveChanges();
 
@@ -510,15 +472,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             var savedEntity = (await dbContext.Set<TEntity>().AddAsync(entity)).Entity;
 
-            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
-
             if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
             if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
-
-            OnBeforeAdd(entity);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -529,26 +487,24 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
             var now = DateTime.Now;
 
-            foreach (var entity in entities)
+            foreach (var entity in entityArray)
             {
                 if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
-
-                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
                 if (entity is IEntityCreateTime ct) ct.CreateTime = now;
-
-                OnBeforeAdd(entity);
             }
 
-            dbContext.Set<TEntity>().AddRange(entities);
+            dbContext.Set<TEntity>().AddRange(entityArray);
 
             if (autoSave) dbContext.SaveChanges();
         }
@@ -557,26 +513,24 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
             var now = DateTime.Now;
 
-            foreach (var entity in entities)
+            foreach (var entity in entityArray)
             {
                 if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
-
-                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
                 if (entity is IEntityCreateTime ct) ct.CreateTime = now;
-
-                OnBeforeAdd(entity);
             }
 
-            await dbContext.Set<TEntity>().AddRangeAsync(entities, cancellationToken);
+            await dbContext.Set<TEntity>().AddRangeAsync(entityArray, cancellationToken);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -596,16 +550,14 @@ namespace EasyCore.EFCoreRepository.Repository
                 dbContext.Update(entity);
             }
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
-                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
-
-                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
             }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
-            OnBeforeUpdate(entity);
 
             if (autoSave) dbContext.SaveChanges();
 
@@ -623,16 +575,14 @@ namespace EasyCore.EFCoreRepository.Repository
                 dbContext.Update(entity);
             }
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
-                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
-
-                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
             }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
-            OnBeforeUpdate(entity);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -643,27 +593,25 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                var now = DateTime.Now;
-
-                foreach (var entity in entities)
+                foreach (var entity in entityArray)
                 {
-                    if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
-
-                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
                     if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
-
-                    OnBeforeUpdate(entity);
                 }
             }
 
-            dbContext.Set<TEntity>().UpdateRange(entities);
+            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
+
+            dbContext.Set<TEntity>().UpdateRange(entityArray);
 
             if (autoSave) dbContext.SaveChanges();
         }
@@ -672,34 +620,32 @@ namespace EasyCore.EFCoreRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities.ToArray();
+
+            if (entityArray.Length <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
+            var now = DateTime.Now;
+
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                var now = DateTime.Now;
-
-                foreach (var entity in entities)
+                foreach (var entity in entityArray)
                 {
-                    if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
-
-                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
                     if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
-
-                    OnBeforeUpdate(entity);
                 }
             }
 
-            dbContext.Set<TEntity>().UpdateRange(entities);
+            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
+
+            dbContext.Set<TEntity>().UpdateRange(entityArray);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         #endregion
 
-        #region SaveChange
+        #region  Aiding Method
 
         public int SaveChanges()
         {
@@ -714,10 +660,6 @@ namespace EasyCore.EFCoreRepository.Repository
 
             return await dbContext.SaveChangesAsync(cancellationToken);
         }
-
-        #endregion
-
-        #region Aiding Method
 
         public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
 
@@ -734,9 +676,9 @@ namespace EasyCore.EFCoreRepository.Repository
             return dataFilters;
         }
 
-        private EfCoreRepository<TDbContext, TEntity> Clone()
+        private MongoDbRepository<TDbContext, TEntity> Clone()
         {
-            var clone = new EfCoreRepository<TDbContext, TEntity>(_dbContext, _serviceProvider);
+            var clone = new MongoDbRepository<TDbContext, TEntity>(_dbContext, _serviceProvider);
 
             clone._dataFilters = new List<IDataFilter>(_dataFilters);
 

@@ -29,7 +29,7 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         [HttpPut]
         public async Task Put()
         {
-            var entity = await _repository.GetFirstAsync(e => e.Name == "Test");
+            var entity = await _repository.GetFirstAsync(e => e.Name == "Test" && e.Age == 10);
 
             if (entity == null) return;
 

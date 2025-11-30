@@ -25,11 +25,11 @@ namespace EasyCore.EFCoreRepository.Demo.EntityChange
             await Task.CompletedTask;
         }
 
-        public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
+        public async Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
         {
             _logger.LogInformation($"Entity updated: Id:{oldEntity.Id} --> Id:{currentEntity.Id}; Name:{oldEntity.Name} --> Name:{currentEntity.Name};Age:{oldEntity.Age} --> Age:{currentEntity.Age};");
 
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }
