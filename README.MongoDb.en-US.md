@@ -384,6 +384,65 @@ Users can configure custom data filters based on their specific project requirem
 ```
 Override the OnApplyPersistingFilters method to add or modify persistent filter settings.
 
+# 🏷️CustomRepository
+A user-defined repository. Since the entity fields vary across different systems, EasyCore does not restrict the entity fields or field types used by users. For example, fields like "creator ID" can be either Guid or long.
+
+CustomEntityRepository provides three overridable methods: OnBeforeAdd (before adding), OnBeforeUpdate (before updating), and OnBeforeDelete (before deleting).
+
+This allows us to automatically set field values during create, update, and delete operations without manual intervention. CustomRepository handles this automatically.
+
+```
+  public class CustomEntityRepository<TDbContext, TEntity> : EfCoreRepository<TDbContext, TEntity>
+      where TDbContext : DbContext
+      where TEntity : class, IEntity
+  {
+      public CustomEntityRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+      {
+
+      }
+
+      /// <summary>
+      /// Custom method to set the CreateId property of the entity before adding it to the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeAdd(TEntity entity)
+      {
+          if (entity is CustomEntity customEntity)
+          {
+              customEntity.CreateId = "Test";
+          }
+      }
+
+      /// <summary>
+      /// Custom method to set the UpdateId property of the entity before updating it in the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeUpdate(TEntity entity)
+      {
+          // Do something entity before update
+      }
+
+      /// <summary>
+      /// Custom method to set the DeleteId property of the entity before deleting it from the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeDelete(TEntity entity)
+      {
+          // Do something entity before delete
+      }
+```
+
+```
+  public class TestCustomEntityRepository : CustomEntityRepository<TestDbContext, TestCustomEntity>, ITestCustomEntityRepository
+  {
+      public TestCustomEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+      {
+
+      }
+  }
+```
+Full control is given to the user.
+
 # 🎉 Summary
 The EasyCore.EFCoreRepository series of components provides:
 
