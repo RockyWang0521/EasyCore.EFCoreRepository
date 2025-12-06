@@ -25,7 +25,7 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;
-            _dataFilters = GetDataFilters(dbContext.Set<TEntity>().AsQueryable());
+            _dataFilters = GetDataFilters(typeof(TEntity));
             _dataFilters = OnApplyPersistingFilters(_dataFilters);
         }
 
@@ -663,14 +663,14 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
 
-        private List<IDataFilter> GetDataFilters(IEnumerable<TEntity> entities)
+        private List<IDataFilter> GetDataFilters(Type entityType)
         {
             var dataFilters = new List<IDataFilter>();
 
-            if (entities.Any(e => e is IEntitySoftDelete))
+            if (typeof(IEntitySoftDelete).IsAssignableFrom(entityType))
                 dataFilters.Add(SoftDeleteFilter);
 
-            if (entities.Any(e => e is IEntityTenant))
+            if (typeof(IEntityTenant).IsAssignableFrom(entityType))
                 dataFilters.Add(TenantFilter);
 
             return dataFilters;
