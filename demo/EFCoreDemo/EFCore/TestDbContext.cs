@@ -17,7 +17,7 @@ namespace EFCoreDbContext.EntityFrameworkCore.EFDbContext
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder
-                .UseSqlServer("Server=localhost;Database=Demo;User Id=sa;Password=123456;TrustServerCertificate=True;Connect Timeout=10;")
+                .UseSqlServer("Server=localhost;Database=Demo;User Id=sa;Password=Sa123456;TrustServerCertificate=True;Connect Timeout=10;")
                 .UseLoggerFactory(LoggerFactory.Create(option =>
                 {
                     option.AddConsole();
