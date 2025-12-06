@@ -1,4 +1,5 @@
-﻿using EasyCore.EFCoreRepository.EntityBase;
+﻿using EasyCore.EFCoreRepository.DataFilter;
+using EasyCore.EFCoreRepository.EntityBase;
 using EasyCore.EFCoreRepository.Repository;
 using EFCore.Entity;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,19 @@ namespace EFCore.Repository.CustomRepository
         public override void OnBeforeDelete(TEntity entity)
         {
             // Do something entity before delete
+        }
+
+        /// <summary>
+        /// Applies permanent data filters before persisting entities (Insert/Update/Delete).
+        /// This method is called during the persistence pipeline to enforce global filters.
+        /// </summary>
+        /// <param name="dataFilters">The list of data filters that are currently scheduled for execution.</param>
+        /// <returns>The updated list of data filters after applying permanent filter rules.</returns>
+        public override List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
+        {
+            // Do something before persist
+
+            return dataFilters;
         }
     }
 }
