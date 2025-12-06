@@ -500,6 +500,67 @@ CustomEntity为用户自定义实体对象，自定义实体中存在CreateId字
 
 #### ✨ 特性：当实体完成增删改操作时，系统会自动调用对应的接口方法，实现无缝的变更追踪！
 
+# 🏷️CustomRepository
+
+用户自定义仓储，由于每一个系统的实体字段都不相同。EasyCore不会对用户的实体字段和字段类型进行限制，比如添加人id等信息。类型可以是Guid也可以是long。
+
+CustomEntityRepository 提供了三个重写方法：OnBeforeAdd (在添加前)；OnBeforeUpdate (在修改前)；OnBeforeDelete (在删除前)；
+
+这样我们在增删改的时候不需要手动的添加字段值。CustomRepository自动添加。
+
+```
+  public class CustomEntityRepository<TDbContext, TEntity> : EfCoreRepository<TDbContext, TEntity>
+      where TDbContext : DbContext
+      where TEntity : class, IEntity
+  {
+      public CustomEntityRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+      {
+
+      }
+
+      /// <summary>
+      /// Custom method to set the CreateId property of the entity before adding it to the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeAdd(TEntity entity)
+      {
+          if (entity is CustomEntity customEntity)
+          {
+              customEntity.CreateId = "Test";
+          }
+      }
+
+      /// <summary>
+      /// Custom method to set the UpdateId property of the entity before updating it in the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeUpdate(TEntity entity)
+      {
+          // Do something entity before update
+      }
+
+      /// <summary>
+      /// Custom method to set the DeleteId property of the entity before deleting it from the database.
+      /// </summary>
+      /// <param name="entity"></param>
+      public override void OnBeforeDelete(TEntity entity)
+      {
+          // Do something entity before delete
+      }
+```
+
+```
+  public class TestCustomEntityRepository : CustomEntityRepository<TestDbContext, TestCustomEntity>, ITestCustomEntityRepository
+  {
+      public TestCustomEntityRepository(TestDbContext dbContext, IServiceProvider serviceProvider) : base(dbContext, serviceProvider)
+      {
+
+      }
+  }
+```
+把选择权完全交由用户处理。
+
+
 # 🎉 总结
 EasyCore.EFCoreRepository 系列组件提供了：
 
