@@ -23,9 +23,9 @@ namespace EFCore.Repository
         /// <returns>The updated list of data filters after applying permanent filter rules.</returns>
         public override List<IDataFilter> OnApplyPersistingFilters(List<IDataFilter> dataFilters)
         {
-            AddOnce(dataFilters, typeof(CustomDataFilter));
+            //AddOnce(dataFilters, typeof(CustomDataFilter));
 
-            RemoveIfExistsFilter(dataFilters, typeof(CustomDataFilter));
+            //RemoveIfExistsFilter(dataFilters, typeof(CustomDataFilter));
 
             return dataFilters;
         }
