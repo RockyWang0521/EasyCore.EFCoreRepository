@@ -19,7 +19,7 @@ namespace EasyCore.EFCoreRepository.Repository
     {
         private readonly TDbContext _dbContext;
         private readonly IServiceProvider _serviceProvider;
-        private List<IDataFilter> _dataFilters = new List<IDataFilter>();
+        private readonly List<IDataFilter> _dataFilters;
 
         public EfCoreRepository(TDbContext dbContext, IServiceProvider serviceProvider) : base(serviceProvider)
         {
@@ -37,12 +37,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (filter == null) return this;
 
-            var clone = Clone();
+            var newList = new List<IDataFilter>(_dataFilters);
 
-            if (!_dataFilters.Any(f => f.GetType().FullName == filter.GetType().FullName))
-            {
-                _dataFilters.Add(filter);
-            }
+            if (!newList.Any(f => f.GetType().FullName == filter.GetType().FullName)) newList.Add(filter);
+
+            var clone = Clone(newList);
 
             return clone;
         }
@@ -53,9 +52,11 @@ namespace EasyCore.EFCoreRepository.Repository
 
             if (filter == null) return this;
 
-            var clone = Clone();
+            var newList = new List<IDataFilter>(_dataFilters);
 
-            clone._dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+            newList.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+
+            var clone = Clone(newList);
 
             return clone;
         }
@@ -734,14 +735,21 @@ namespace EasyCore.EFCoreRepository.Repository
             return dataFilters;
         }
 
-        private EfCoreRepository<TDbContext, TEntity> Clone()
+        private EfCoreRepository<TDbContext, TEntity> Clone(List<IDataFilter> dataFilters)
         {
-            var clone = new EfCoreRepository<TDbContext, TEntity>(_dbContext, _serviceProvider);
-
-            clone._dataFilters = new List<IDataFilter>(_dataFilters);
+            var clone = new EfCoreRepository<TDbContext, TEntity>(_dbContext, _serviceProvider, dataFilters);
 
             return clone;
         }
+
+        private EfCoreRepository(TDbContext dbContext, IServiceProvider serviceProvider, List<IDataFilter> dataFilters) : base(serviceProvider)
+        {
+            _dbContext = dbContext;
+            _serviceProvider = serviceProvider;
+            _dataFilters = dataFilters;
+        }
+
+        public List<IDataFilter> DataFilters => _dataFilters;
 
         #endregion
     }
