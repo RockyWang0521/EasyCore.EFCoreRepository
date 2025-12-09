@@ -36,9 +36,5 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.1.3" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <ProjectReference Include="..\EasyCore.EntityChange\EasyCore.EntityChange.csproj" />
-  </ItemGroup>
 
 </Project>
