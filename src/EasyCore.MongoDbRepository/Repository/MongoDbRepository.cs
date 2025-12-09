@@ -37,9 +37,11 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (filter == null) return this;
 
-            var clone = Clone();
+            var newList = new List<IDataFilter>(_dataFilters);
 
-            clone._dataFilters.Add(filter);
+            if (!newList.Any(f => f.GetType().FullName == filter.GetType().FullName)) newList.Add(filter);
+
+            var clone = Clone(newList);
 
             return clone;
         }
@@ -50,9 +52,11 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (filter == null) return this;
 
-            var clone = Clone();
+            var newList = new List<IDataFilter>(_dataFilters);
 
-            clone._dataFilters.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+            newList.RemoveAll(f => f.GetType().FullName == filter.GetType().FullName);
+
+            var clone = Clone(newList);
 
             return clone;
         }
@@ -85,6 +89,25 @@ namespace EasyCore.MongoDbRepository.Repository
 
         #endregion
 
+        #region Entity Lifecycle Pre-Processing
+
+        public virtual void OnBeforeAdd(TEntity entity)
+        {
+
+        }
+
+        public virtual void OnBeforeUpdate(TEntity entity)
+        {
+
+        }
+
+        public virtual void OnBeforeDelete(TEntity entity)
+        {
+
+        }
+
+        #endregion
+
         #region Delete
 
         public virtual void Delete([NotNull] Expression<Func<TEntity, bool>> predicate, bool autoSave = false)
@@ -107,6 +130,8 @@ namespace EasyCore.MongoDbRepository.Repository
             if (entity is IEntitySoftDelete entityEsd)
             {
                 entityEsd.IsDeleted = true;
+
+                OnBeforeDelete(entity);
 
                 if (autoSave) dbContext.SaveChanges();
             }
@@ -132,6 +157,8 @@ namespace EasyCore.MongoDbRepository.Repository
             if (entity is IEntitySoftDelete entityEsd)
             {
                 entityEsd.IsDeleted = true;
+
+                OnBeforeDelete(entity);
 
                 if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -201,18 +228,21 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            var entityArray = entities.ToArray();
-
-            if (entityArray.Length <= 0) return;
+            if (entities.Count() <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
+            foreach (var entity in entities)
             {
-                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
+                if (entity is IEntitySoftDelete entitySoftDelete)
+                {
+                    entitySoftDelete.IsDeleted = true;
 
-                if (autoSave) dbContext.SaveChanges();
+                    OnBeforeDelete(entity);
+                }
             }
+
+            if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
@@ -225,12 +255,17 @@ namespace EasyCore.MongoDbRepository.Repository
 
             TDbContext dbContext = GetDbContext();
 
-            if (entityArray is IEntitySoftDelete[] entitySoftDeletes)
+            foreach (var entity in entities)
             {
-                foreach (var entitySoftDelete in entitySoftDeletes) entitySoftDelete.IsDeleted = true;
+                if (entity is IEntitySoftDelete entitySoftDelete)
+                {
+                    entitySoftDelete.IsDeleted = true;
 
-                if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
+                    OnBeforeDelete(entity);
+                }
             }
+
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         #endregion
@@ -461,6 +496,8 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
 
+            OnBeforeAdd(entity);
+
             if (autoSave) dbContext.SaveChanges();
 
             return savedEntity;
@@ -478,6 +515,8 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (savedEntity is IEntityCreateTime createTime) createTime.CreateTime = DateTime.Now;
 
+            OnBeforeAdd(entity);
+
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
             return savedEntity;
@@ -487,24 +526,24 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            var entityArray = entities.ToArray();
-
-            if (entityArray.Length <= 0) return;
+            if (entities.Count() <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
             var now = DateTime.Now;
 
-            foreach (var entity in entityArray)
+            foreach (var entity in entities)
             {
                 if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
                 if (entity is IEntityCreateTime ct) ct.CreateTime = now;
+
+                OnBeforeAdd(entity);
             }
 
-            dbContext.Set<TEntity>().AddRange(entityArray);
+            dbContext.Set<TEntity>().AddRange(entities);
 
             if (autoSave) dbContext.SaveChanges();
         }
@@ -513,24 +552,24 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            var entityArray = entities.ToArray();
-
-            if (entityArray.Length <= 0) return;
+            if (entities.Count() <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
             var now = DateTime.Now;
 
-            foreach (var entity in entityArray)
+            foreach (var entity in entities)
             {
                 if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
                 if (entity is IEntityCreateTime ct) ct.CreateTime = now;
+
+                OnBeforeAdd(entity);
             }
 
-            await dbContext.Set<TEntity>().AddRangeAsync(entityArray, cancellationToken);
+            await dbContext.Set<TEntity>().AddRangeAsync(entities, cancellationToken);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -550,14 +589,14 @@ namespace EasyCore.MongoDbRepository.Repository
                 dbContext.Update(entity);
             }
 
-            var now = DateTime.Now;
-
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
-                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+
+            OnBeforeUpdate(entity);
 
             if (autoSave) dbContext.SaveChanges();
 
@@ -575,14 +614,14 @@ namespace EasyCore.MongoDbRepository.Repository
                 dbContext.Update(entity);
             }
 
-            var now = DateTime.Now;
-
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
-                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = now;
+                if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
             if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+
+            OnBeforeUpdate(entity);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -593,25 +632,25 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            var entityArray = entities.ToArray();
-
-            if (entityArray.Length <= 0) return;
+            if (entities.Count() <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            var now = DateTime.Now;
-
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                foreach (var entity in entityArray)
+                var now = DateTime.Now;
+
+                foreach (var entity in entities)
                 {
+                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+
                     if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
+
+                    OnBeforeUpdate(entity);
                 }
             }
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
-
-            dbContext.Set<TEntity>().UpdateRange(entityArray);
+            dbContext.Set<TEntity>().UpdateRange(entities);
 
             if (autoSave) dbContext.SaveChanges();
         }
@@ -620,25 +659,25 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             if (entities == null) throw new ArgumentNullException(nameof(entities));
 
-            var entityArray = entities.ToArray();
-
-            if (entityArray.Length <= 0) return;
+            if (entities.Count() <= 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            var now = DateTime.Now;
-
             if (dbContext.Entry(entities).State == EntityState.Modified)
             {
-                foreach (var entity in entityArray)
+                var now = DateTime.Now;
+
+                foreach (var entity in entities)
                 {
+                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+
                     if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
+
+                    OnBeforeUpdate(entity);
                 }
             }
 
-            if (entityArray is IEntityTenant[] entityTenant) foreach (var entity in entityTenant) entity.TenantId = TenantFilter.TenantId;
-
-            dbContext.Set<TEntity>().UpdateRange(entityArray);
+            dbContext.Set<TEntity>().UpdateRange(entities);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -676,14 +715,21 @@ namespace EasyCore.MongoDbRepository.Repository
             return dataFilters;
         }
 
-        private MongoDbRepository<TDbContext, TEntity> Clone()
+        private MongoDbRepository<TDbContext, TEntity> Clone(List<IDataFilter> dataFilters)
         {
-            var clone = new MongoDbRepository<TDbContext, TEntity>(_dbContext, _serviceProvider);
-
-            clone._dataFilters = new List<IDataFilter>(_dataFilters);
+            var clone = new MongoDbRepository<TDbContext, TEntity>(_dbContext, _serviceProvider, dataFilters);
 
             return clone;
         }
+
+        private MongoDbRepository(TDbContext dbContext, IServiceProvider serviceProvider, List<IDataFilter> dataFilters) : base(serviceProvider)
+        {
+            _dbContext = dbContext;
+            _serviceProvider = serviceProvider;
+            _dataFilters = dataFilters;
+        }
+
+        public List<IDataFilter> DataFilters => _dataFilters;
 
         #endregion
     }

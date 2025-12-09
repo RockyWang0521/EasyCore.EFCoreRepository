@@ -16,7 +16,7 @@
     <PackageLicenseExpression>MIT OR Apache-2.0</PackageLicenseExpression>
     <AssemblyVersion>8.0.0.0</AssemblyVersion>
     <FileVersion>8.0.0.0</FileVersion>
-    <Version>8.0.6</Version>
+    <Version>8.0.7</Version>
     <OutputType>Library</OutputType>
   </PropertyGroup>
 
@@ -35,6 +35,10 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.1.3" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\EasyCore.EntityChange\EasyCore.EntityChange.csproj" />
   </ItemGroup>
 
 </Project>
