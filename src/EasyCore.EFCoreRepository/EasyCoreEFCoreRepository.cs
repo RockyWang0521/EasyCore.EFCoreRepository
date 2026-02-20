@@ -20,49 +20,7 @@ namespace EasyCore.EFCoreRepository
 
             services.TryAddTransient<ITenantFilter, TenantFilter>();
 
-            services.TryAddTransient<ISoftDeleteFilter, SoftDeleteFilter>();
-
-            var rootDirectory = AppDomain.CurrentDomain.BaseDirectory;
-
-            string[] dllFiles = Directory.GetFiles(rootDirectory, "*.dll", SearchOption.TopDirectoryOnly).Where(path =>
-            {
-                string fileName = Path.GetFileName(path);
-                return !(fileName.StartsWith("Microsoft.", StringComparison.OrdinalIgnoreCase) || fileName.StartsWith("System.", StringComparison.OrdinalIgnoreCase));
-            }).ToArray();
-
-            var repoImplBaseType = typeof(EfCoreRepository<,>);
-
-            var repoInterfaceType = typeof(IEfCoreRepository<,>);
-
-            foreach (var dll in dllFiles)
-            {
-                var assembly = Assembly.LoadFrom(dll);
-
-                foreach (var type in assembly.GetTypes())
-                {
-                    if (!type.IsClass || type.IsAbstract) continue;
-
-                    var baseType = type.BaseType;
-
-                    if (baseType == null || !baseType.IsGenericType) continue;
-
-                    var baseGeneric = baseType.GetGenericTypeDefinition();
-
-                    if (baseGeneric != repoImplBaseType) continue;
-
-                    var args = baseType.GetGenericArguments();
-
-                    var dbContextType = args[0];
-
-                    var entityType = args[1];
-
-                    if (!registeredDbContexts.Contains(dbContextType)) continue;
-
-                    var interfaceType = repoInterfaceType.MakeGenericType(dbContextType, entityType);
-
-                    services.AddTransient(interfaceType, type);
-                }
-            }
+            services.TryAddTransient<ISoftDeleteFilter, SoftDeleteFilter>();  
         }
     }
 }

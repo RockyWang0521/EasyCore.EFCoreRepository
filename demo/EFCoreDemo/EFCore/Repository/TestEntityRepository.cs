@@ -29,5 +29,12 @@ namespace EFCore.Repository
 
             return dataFilters;
         }
+
+        public List<IDataFilter> TestCustomEntityGetDataFilters()
+        {
+            AddOnce(DataFilters, typeof(CustomDataFilter));
+
+            return base.DataFilters;
+        }
     }
 }

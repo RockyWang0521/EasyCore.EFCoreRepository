@@ -13,9 +13,12 @@ namespace EasyCore.EFCoreRepository.Repository
     /// </summary>
     /// <typeparam name="TDbContext">DbContext</typeparam>
     /// <typeparam name="TEntity">Entity</typeparam>
-    public class EfCoreRepository<TDbContext, TEntity> : BaseEfCoreRepository, IEfCoreRepository<TDbContext, TEntity>
-           where TDbContext : DbContext
-           where TEntity : class, IEntity
+    public class EfCoreRepository<TDbContext, TEntity> :
+        BaseEfCoreRepository,
+        IEfCoreRepository<TEntity>,
+        IEfCoreRepository<TDbContext, TEntity>
+        where TDbContext : DbContext
+        where TEntity : class, IEntity
     {
         private readonly TDbContext _dbContext;
         private readonly IServiceProvider _serviceProvider;

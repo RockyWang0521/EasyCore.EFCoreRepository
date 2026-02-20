@@ -12,10 +12,26 @@ namespace EasyCore.EFCoreRepository.IRepository
     /// <typeparam name="TDbContext">EF Core DbContext type.</typeparam>
     /// <typeparam name="TEntity">Entity type.</typeparam>
     public interface IRepository<TDbContext, TEntity> :
-        IReadOnlyRepository<TEntity>,
-        IBasicRepository<TEntity>,
+        IRepository<TEntity>,
         IFilter<TDbContext, TEntity>
         where TDbContext : DbContext
+        where TEntity : class, IEntity
+    {    
+        /// <summary>
+        /// Gets the DbContext for this repository.
+        /// </summary>
+        /// <returns></returns>
+        TDbContext GetDbContext();
+    }
+
+    /// <summary>
+    /// Defines a full-featured repository that supports read, write, filter,
+    /// and predicate-based operations for a specific DbContext.
+    /// </summary>
+    /// <typeparam name="TEntity">Entity type.</typeparam>
+    public interface IRepository<TEntity> :
+        IReadOnlyRepository<TEntity>,
+        IBasicRepository<TEntity>
         where TEntity : class, IEntity
     {
         /// <summary>
@@ -137,11 +153,5 @@ namespace EasyCore.EFCoreRepository.IRepository
             IEnumerable<TEntity> entities,
             bool autoSave = false,
             CancellationToken cancellationToken = default);
-
-        /// <summary>
-        /// Gets the DbContext for this repository.
-        /// </summary>
-        /// <returns></returns>
-        TDbContext GetDbContext();
     }
 }
