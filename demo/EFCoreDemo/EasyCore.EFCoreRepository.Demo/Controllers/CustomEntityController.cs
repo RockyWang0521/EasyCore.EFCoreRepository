@@ -24,7 +24,7 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         /// Can freely add, remove, or modify data filters
         /// </summary>
         /// <returns></returns>
-        [HttpPost]
+        [HttpPost("filter")]
         public async Task Filter()
         {
             var entityDataFilters = _repository.TestCustomEntityGetDataFilters();
