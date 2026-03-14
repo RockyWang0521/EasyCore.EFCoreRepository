@@ -1,4 +1,4 @@
-# 🏗️ EasyCore.MongoDbRepository
+﻿# 🏗️ EasyCore.MongoDbRepository
 
 [中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.md) | [EFCore 中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.md)
 
@@ -91,7 +91,7 @@ public class RepositoryController : ControllerBase
     [HttpGet]
     public async Task<TestEntity> Get()
     {
-        return await _repository.GetAsync(e => e.Name == "Test");
+        return await _repository.GetFirstAsync(e => e.Name == "Test");
     }
 
     // ➕ Insert
@@ -110,7 +110,7 @@ public class RepositoryController : ControllerBase
     [HttpPut]
     public async Task Put()
     {
-        var entity = await _repository.GetAsync(e => e.Name == "Test");
+        var entity = await _repository.GetFirstAsync(e => e.Name == "Test");
         entity.Age = 20;
         await _repository.UpdateAsync(entity, true);
     }
@@ -119,7 +119,7 @@ public class RepositoryController : ControllerBase
     [HttpDelete]
     public async Task Delete()
     {
-        var entity = await _repository.GetAsync(e => e.Age == 20);
+        var entity = await _repository.GetFirstAsync(e => e.Age == 20);
         entity.IsDeleted = true;
         await _repository.UpdateAsync(entity, true);
     }
@@ -252,14 +252,17 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 
 ### 1. 📝 Program Registration
 ```
-builder.Services.AddDbContext<TestDbContext>(op =>
+builder.Services.EasyCoreEntityChange()
+    .AddHandler<EntityChange>();
+
+builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
+    op.UseEasyCoreEntityChange(sp);
 });
 
 builder.Services.AddDbContext<Test2DbContext>(op =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
+    op.UseEasyCoreEntityChange(sp); // ✨ Use EasyCore EFCore Entity Change Tracking
 });
 
 // 🔧 Enable EasyCore Entity Change Service

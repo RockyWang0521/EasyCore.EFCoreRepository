@@ -1,4 +1,4 @@
-# 🏗️ EasyCore.MongoDbRepository
+﻿# 🏗️ EasyCore.MongoDbRepository
 
 [English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.en-US.md) |  [EFCore English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/%20README.en-US.md)
 
@@ -94,7 +94,7 @@ public class RepositoryController : ControllerBase
     [HttpGet]
     public async Task<TestEntity> Get()
     {
-        return await _repository.GetAsync(e => e.Name == "Test");
+        return await _repository.GetFirstAsync(e => e.Name == "Test");
     }
 
     // ➕ 新增
@@ -113,7 +113,7 @@ public class RepositoryController : ControllerBase
     [HttpPut]
     public async Task Put()
     {
-        var entity = await _repository.GetAsync(e => e.Name == "Test");
+        var entity = await _repository.GetFirstAsync(e => e.Name == "Test");
         entity.Age = 20;
         await _repository.UpdateAsync(entity, true);
     }
@@ -122,7 +122,7 @@ public class RepositoryController : ControllerBase
     [HttpDelete]
     public async Task Delete()
     {
-        var entity = await _repository.GetAsync(e => e.Age == 20);
+        var entity = await _repository.GetFirstAsync(e => e.Age == 20);
         entity.IsDeleted = true;
         await _repository.UpdateAsync(entity, true);
     }
@@ -258,14 +258,17 @@ EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 ### 1. 📝 Program 注册
 
 ```
-builder.Services.AddDbContext<TestDbContext>(op =>
+builder.Services.EasyCoreEntityChange()
+    .AddHandler<EntityChange>();
+
+builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+    op.UseEasyCoreEntityChange(sp);
 });
 
 builder.Services.AddDbContext<Test2DbContext>(op =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+    op.UseEasyCoreEntityChange(sp); // ✨ 使用 EasyCore EFCore 实体变更追踪
 });
 
 // 🔧 启用 EasyCore 实体变更服务

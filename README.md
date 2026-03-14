@@ -1,4 +1,4 @@
-# 🏗️ EasyCore.EFCoreRepository
+﻿# 🏗️ EasyCore.EFCoreRepository
 
 [English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.en-US.md)  |  [MongoDb English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.en-US.md)
 
@@ -94,7 +94,7 @@ public class RepositoryController : ControllerBase
     [HttpGet]
     public async Task<TestEntity> Get()
     {
-        return await _repository.GetAsync(e => e.Name == "Test");
+        return await _repository.GetFirstAsync(e => e.Name == "Test");
     }
 
     // ➕ 新增
@@ -112,7 +112,7 @@ public class RepositoryController : ControllerBase
     [HttpPut]
     public async Task Put()
     {
-        var entity = await _repository.GetAsync(e => e.Name == "Test");
+        var entity = await _repository.GetFirstAsync(e => e.Name == "Test");
         entity.Age = 20;
         await _repository.UpdateAsync(entity, true);
     }
@@ -121,7 +121,7 @@ public class RepositoryController : ControllerBase
     [HttpDelete]
     public async Task Delete()
     {
-        var entity = await _repository.GetAsync(e => e.Age == 20);
+        var entity = await _repository.GetFirstAsync(e => e.Age == 20);
         entity.IsDeleted = true;
         await _repository.UpdateAsync(entity, true);
     }
@@ -177,36 +177,30 @@ int SaveChanges();
 ##### 🔍 查询操作
 ```
 // 获取列表
-Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
-
-List<TEntity> GetList(bool includeDetails = false);
+Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default);
+List<TEntity> GetList();
+Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate);
 
 // 数量统计
 Task<long> GetCountAsync(CancellationToken cancellationToken = default);
-
 long GetCount();
-
 Task<long> GetCountAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
-
 long GetCount(Expression<Func<TEntity, bool>> predicate);
 
-// 分页查询
-Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default);
+// 分页查询（可选排序）
+Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, CancellationToken cancellationToken = default);
+List<TEntity> GetPagedList(int skipCount, int maxResultCount);
+Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true, CancellationToken cancellationToken = default);
+List<TEntity> GetPagedList(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true);
 
-List<TEntity> GetPagedList(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false);
-
-// 条件查询
-Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
-
-List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
-
-// 单实体查询
-Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
-
-TEntity? Get(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
+// 单实体查询（GetFirstAsync 未找到时抛出异常；GetFirst 返回 null）
+Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+TEntity? GetFirst(Expression<Func<TEntity, bool>> predicate);
 ```
 ##### ⚡ 直接删除操作
 ```
+// DeleteDirect* 绕过软删除/租户过滤器，物理删除
 Task DeleteDirectAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
 void DeleteDirect(Expression<Func<TEntity, bool>> predicate);
@@ -228,7 +222,9 @@ EasyCore.EFCoreRepository 内置了两个实用的数据过滤器：
 
 🗑️ ISoftDeleteFilter - 软删除过滤器
 
-🏢 ITenantFilter - 租户过滤器
+🏢 ITenantFilter - 租户过滤器（未解析到 TenantId 时**失败关闭**，返回空结果，防止跨租户泄漏）
+
+可通过 `ITenantProvider` 自定义租户来源（默认从 `HttpContext.Items["TenantId"]` 读取）。
 
 #### 自定义过滤器示例 🎨：
 ```
@@ -273,8 +269,9 @@ public class Program
 
         // ✨ 使用 EasyCore EFCore Repository
         builder.Services.EasyCoreEFCoreRepository();
-        // 🔄 使用 EasyCore EFCore UnitOfWork
-        builder.Services.EasyCoreUnitOfWork();
+        // 🔄 使用 EasyCore EFCore UnitOfWork（生产环境请显式注册；EnableAssemblyScanning 为可选）
+        builder.Services.EasyCoreUnitOfWork()
+            .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
 
         var app = builder.Build();
 
@@ -365,19 +362,17 @@ EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 ### 1. 📝 Program 注册
 
 ```
-builder.Services.AddDbContext<TestDbContext>(op =>
-{
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
-});
+// 先注册 EntityChange，再在 AddDbContext 中注入拦截器（使用 IServiceProvider，禁止 BuildServiceProvider）
+builder.Services.EasyCoreEntityChange()
+    .AddHandler<EntityChange>(); // 生产推荐显式注册；.EnableAssemblyScanning() 为可选
 
-builder.Services.AddDbContext<Test2DbContext>(op =>
+builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ 使用 EasyCore EFCore 实体变更追踪
+    op.UseEasyCoreEntityChange(sp);
 });
-
-// 🔧 启用 EasyCore 实体变更服务
-builder.Services.EasyCoreEntityChange();
 ```
+
+> 说明：软删除（`IsDeleted` 从 false→true）会按 **Deleted** 派发 handler。Handler 异常默认向上抛出（可用 `Configure(o => o.SuppressHandlerExceptions = true)` 改为吞掉）。
 
 ### 2. 🎯 使用实体变更追踪
 

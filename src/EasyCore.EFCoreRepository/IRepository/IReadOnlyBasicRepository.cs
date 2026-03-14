@@ -53,9 +53,6 @@ namespace EasyCore.EFCoreRepository.IRepository
         /// <summary>
         /// Gets a paged list of entities.
         /// </summary>
-        /// <param name="skipCount">Number of records to skip.</param>
-        /// <param name="maxResultCount">Number of items to return.</param>               
-        /// <param name="cancellationToken">Cancellation token.</param>
         Task<List<TEntity>> GetPagedListAsync(
             int skipCount,
             int maxResultCount,
@@ -64,10 +61,27 @@ namespace EasyCore.EFCoreRepository.IRepository
         /// <summary>
         /// Gets a paged list of entities.
         /// </summary>
-        /// <param name="skipCount">Number of records to skip.</param>
-        /// <param name="maxResultCount">Number of items to return.</param>     
         List<TEntity> GetPagedList(
             int skipCount,
             int maxResultCount);
+
+        /// <summary>
+        /// Gets a paged list ordered by the given key selector.
+        /// </summary>
+        List<TEntity> GetPagedList(
+            int skipCount,
+            int maxResultCount,
+            [NotNull] Expression<Func<TEntity, object>> orderBy,
+            bool ascending = true);
+
+        /// <summary>
+        /// Gets a paged list ordered by the given key selector.
+        /// </summary>
+        Task<List<TEntity>> GetPagedListAsync(
+            int skipCount,
+            int maxResultCount,
+            [NotNull] Expression<Func<TEntity, object>> orderBy,
+            bool ascending = true,
+            CancellationToken cancellationToken = default);
     }
 }

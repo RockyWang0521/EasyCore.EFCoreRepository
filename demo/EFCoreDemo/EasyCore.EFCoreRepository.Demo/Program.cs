@@ -1,5 +1,7 @@
 using EasyCore.Dependencie;
 using EasyCore.EntityChange;
+using EasyCore.EFCoreRepository;
+using EasyCore.EFCoreRepository.Demo.UnitOfWork;
 using EasyCore.UnitOfWork;
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
 
@@ -16,33 +18,33 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.AddDbContext<TestDbContext>(op =>
+            // Use EasyCore Entity Change (register before AddDbContext so interceptor can resolve)
+            builder.Services.EasyCoreEntityChange()
+                .AddHandler<EasyCore.EFCoreRepository.Demo.EntityChange.EntityChange>();
+
+            builder.Services.AddDbContext<TestDbContext>((sp, op) =>
             {
-                op.UseEasyCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+                op.UseEasyCoreEntityChange(sp);
             });
 
             // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
 
-            // Use EasyCore EFCore UnitOfWork
-            builder.Services.EasyCoreUnitOfWork();
-
-            // Use EasyCore Entity Change
-            builder.Services.EasyCoreEntityChange();
+            // Use EasyCore EFCore UnitOfWork (explicit registration)
+            builder.Services.EasyCoreUnitOfWork()
+                .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>()
+                .RegisterSaveChangesFor<IUnitOfWorkTest2, UnitOfWorkTest2>();
 
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-
                 app.UseSwaggerUI();
             }
 
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }

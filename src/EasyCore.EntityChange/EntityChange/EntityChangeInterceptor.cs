@@ -1,30 +1,39 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EasyCore.EntityChange.EntityChange
 {
     /// <summary>
-    /// Entity change interceptor.
+    /// Entity change interceptor that dispatches typed handlers on SaveChanges.
+    /// Soft-delete transitions (IsDeleted: false → true) are treated as Deleted.
     /// </summary>
-    internal class EntityChangeInterceptor : SaveChangesInterceptor
+    public class EntityChangeInterceptor : SaveChangesInterceptor
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<EntityChangeInterceptor> _logger;
+        private readonly EntityChangeOptions _options;
 
-        public EntityChangeInterceptor(IServiceProvider serviceProvider)
+        public EntityChangeInterceptor(
+            IServiceProvider serviceProvider,
+            ILogger<EntityChangeInterceptor> logger,
+            IOptions<EntityChangeOptions>? options = null)
         {
             _serviceProvider = serviceProvider;
-            _logger = _serviceProvider.GetRequiredService<ILogger<EntityChangeInterceptor>>();
+            _logger = logger;
+            _options = options?.Value ?? new EntityChangeOptions();
         }
 
         public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
-               DbContextEventData eventData,
-               InterceptionResult<int> result,
-               CancellationToken cancellationToken = default)
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
         {
-            var context = eventData.Context!;
+            var context = eventData.Context
+                ?? throw new InvalidOperationException("DbContext is null in SavingChangesAsync.");
 
             var entries = context.ChangeTracker.Entries()
                 .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
@@ -36,74 +45,73 @@ namespace EasyCore.EntityChange.EntityChange
 
                 if (entry.State == EntityState.Added)
                 {
-                    var handlerType = typeof(IEntityAddedChangeHandler<>).MakeGenericType(entityType);
+                    await InvokeHandlersAsync(
+                        typeof(IEntityAddedChangeHandler<>).MakeGenericType(entityType),
+                        nameof(IEntityAddedChangeHandler<object>.OnAddedAsync),
+                        new[] { entry.Entity },
+                        "added");
+                    continue;
+                }
 
-                    var handlers = _serviceProvider.GetServices(handlerType);
-
-
-                    foreach (var handler in handlers)
-                    {
-                        try
-                        {
-                            await (Task)handlerType
-                                .GetMethod(nameof(IEntityAddedChangeHandler<object>.OnAddedAsync))!
-                                .Invoke(handler, new[] { entry.Entity })!;
-                        }
-                        catch
-                        {
-                            _logger.LogError($"fail: {DateTime.Now} Error while invoking entity added change handler.");
-                        }
-                    }
+                if (entry.State == EntityState.Deleted || IsSoftDeleteTransition(entry))
+                {
+                    await InvokeHandlersAsync(
+                        typeof(IEntityDeletedChangeHandler<>).MakeGenericType(entityType),
+                        nameof(IEntityDeletedChangeHandler<object>.OnDeletedAsync),
+                        new[] { entry.Entity },
+                        "deleted");
+                    continue;
                 }
 
                 if (entry.State == EntityState.Modified)
                 {
-                    var handlerType = typeof(IEntityUpdatedChangeHandler<>).MakeGenericType(entityType);
-
-                    var handlers = _serviceProvider.GetServices(handlerType);
-
-                    foreach (var handler in handlers)
-                    {
-                        var currentEntity = entry.Entity;
-
-                        var originalEntity = entry.OriginalValues.ToObject();
-
-                        try
-                        {
-                            await (Task)handlerType
-                               .GetMethod(nameof(IEntityUpdatedChangeHandler<object>.OnUpdatedAsync))!
-                               .Invoke(handler, new[] { originalEntity, currentEntity })!;
-                        }
-                        catch
-                        {
-                            _logger.LogError($"fail: {DateTime.Now} Error while invoking entity updated change handler.");
-                        }
-                    }
-                }
-
-                if (entry.State == EntityState.Deleted)
-                {
-                    var handlerType = typeof(IEntityDeletedChangeHandler<>).MakeGenericType(entityType);
-
-                    var handlers = _serviceProvider.GetServices(handlerType);
-
-                    foreach (var handler in handlers)
-                    {
-                        try
-                        {
-                            await (Task)handlerType
-                                .GetMethod(nameof(IEntityDeletedChangeHandler<object>.OnDeletedAsync))!
-                                .Invoke(handler, new[] { entry.Entity })!;
-                        }
-                        catch
-                        {
-                            _logger.LogError($"fail: {DateTime.Now} Error while invoking entity deleted change handler.");
-                        }
-                    }
+                    await InvokeHandlersAsync(
+                        typeof(IEntityUpdatedChangeHandler<>).MakeGenericType(entityType),
+                        nameof(IEntityUpdatedChangeHandler<object>.OnUpdatedAsync),
+                        new[] { entry.OriginalValues.ToObject(), entry.Entity },
+                        "updated");
                 }
             }
 
             return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+
+        private static bool IsSoftDeleteTransition(EntityEntry entry)
+        {
+            if (entry.State != EntityState.Modified)
+                return false;
+
+            var prop = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "IsDeleted");
+            if (prop == null)
+                return false;
+
+            return prop.OriginalValue is false && prop.CurrentValue is true;
+        }
+
+        private async Task InvokeHandlersAsync(
+            Type handlerType,
+            string methodName,
+            object?[] args,
+            string operation)
+        {
+            var handlers = _serviceProvider.GetServices(handlerType);
+
+            foreach (var handler in handlers)
+            {
+                try
+                {
+                    var task = (Task?)handlerType.GetMethod(methodName)!.Invoke(handler, args);
+                    if (task != null)
+                        await task;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while invoking entity {Operation} change handler.", operation);
+
+                    if (!_options.SuppressHandlerExceptions)
+                        throw;
+                }
+            }
         }
     }
 }

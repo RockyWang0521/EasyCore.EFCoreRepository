@@ -128,16 +128,13 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual void Delete(TEntity entity, bool autoSave = false)
         {
+            ArgumentNullException.ThrowIfNull(entity);
+
             TDbContext dbContext = GetDbContext();
 
-            if (entity is IEntitySoftDelete entityEsd)
-            {
-                entityEsd.IsDeleted = true;
+            ApplyDelete(dbContext, entity);
 
-                OnBeforeDelete(entity);
-
-                if (autoSave) dbContext.SaveChanges();
-            }
+            if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task DeleteAsync([NotNull] Expression<Func<TEntity, bool>> predicate, bool autoSave = false, CancellationToken cancellationToken = default)
@@ -148,34 +145,28 @@ namespace EasyCore.MongoDbRepository.Repository
 
             query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
-            var entities = query.ToList();
+            var entities = await query.ToListAsync(cancellationToken);
 
             await DeleteManyAsync(entities, autoSave, cancellationToken);
         }
 
         public virtual async Task DeleteAsync(TEntity entity, bool autoSave = false, CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(entity);
+
             TDbContext dbContext = GetDbContext();
 
-            if (entity is IEntitySoftDelete entityEsd)
-            {
-                entityEsd.IsDeleted = true;
+            ApplyDelete(dbContext, entity);
 
-                OnBeforeDelete(entity);
-
-                if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
-            }
+            if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         public virtual void DeleteDirect([NotNull] Expression<Func<TEntity, bool>> predicate)
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
-
-            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
-
-            var entities = query.ToList();
+            // Bypass soft-delete / tenant filters for true hard delete.
+            var entities = dbContext.Set<TEntity>().AsQueryable().Where(predicate).ToList();
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
@@ -186,11 +177,8 @@ namespace EasyCore.MongoDbRepository.Repository
         {
             TDbContext dbContext = GetDbContext();
 
-            var query = dbContext.Set<TEntity>().AsQueryable().Where(predicate);
-
-            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
-
-            var entities = query.ToList();
+            // Bypass soft-delete / tenant filters for true hard delete.
+            var entities = await dbContext.Set<TEntity>().AsQueryable().Where(predicate).ToListAsync(cancellationToken);
 
             dbContext.Set<TEntity>().RemoveRange(entities);
 
@@ -199,11 +187,11 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual void DeleteManyDirect(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            var entityArray = entities.ToArray();
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
 
-            if (entityArray.Length <= 0) return;
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
 
@@ -214,11 +202,11 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual async Task DeleteManyDirectAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            var entityArray = entities.ToArray();
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
 
-            if (entityArray.Length <= 0) return;
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
 
@@ -229,20 +217,17 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual void DeleteMany(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
+
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            foreach (var entity in entities)
+            foreach (var entity in entityArray)
             {
-                if (entity is IEntitySoftDelete entitySoftDelete)
-                {
-                    entitySoftDelete.IsDeleted = true;
-
-                    OnBeforeDelete(entity);
-                }
+                ApplyDelete(dbContext, entity);
             }
 
             if (autoSave) dbContext.SaveChanges();
@@ -250,22 +235,17 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual async Task DeleteManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            var entityArray = entities.ToArray();
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
 
-            if (entityArray.Length <= 0) return;
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
 
-            foreach (var entity in entities)
+            foreach (var entity in entityArray)
             {
-                if (entity is IEntitySoftDelete entitySoftDelete)
-                {
-                    entitySoftDelete.IsDeleted = true;
-
-                    OnBeforeDelete(entity);
-                }
+                ApplyDelete(dbContext, entity);
             }
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
@@ -296,9 +276,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
             query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
-#pragma warning disable CS8603 
-            return await query.FirstOrDefaultAsync(cancellationToken);
-#pragma warning restore CS8603 
+            return await query.FirstAsync(cancellationToken);
         }
 
         public virtual List<TEntity> GetList([NotNull] Expression<Func<TEntity, bool>> predicate)
@@ -356,6 +334,18 @@ namespace EasyCore.MongoDbRepository.Repository
             return query.Skip(skipCount).Take(maxResultCount).ToList();
         }
 
+        public virtual List<TEntity> GetPagedList(int skipCount, int maxResultCount, [NotNull] Expression<Func<TEntity, object>> orderBy, bool ascending = true)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+            query = ascending ? query.OrderBy(orderBy) : query.OrderByDescending(orderBy);
+
+            return query.Skip(skipCount).Take(maxResultCount).ToList();
+        }
+
         public virtual async Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, CancellationToken cancellationToken = default)
         {
             TDbContext dbContext = GetDbContext();
@@ -363,6 +353,18 @@ namespace EasyCore.MongoDbRepository.Repository
             var query = dbContext.Set<TEntity>().AsQueryable();
 
             query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.Skip(skipCount).Take(maxResultCount).ToListAsync(cancellationToken);
+        }
+
+        public virtual async Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, [NotNull] Expression<Func<TEntity, object>> orderBy, bool ascending = true, CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().AsQueryable();
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+            query = ascending ? query.OrderBy(orderBy) : query.OrderByDescending(orderBy);
 
             return await query.Skip(skipCount).Take(maxResultCount).ToListAsync(cancellationToken);
         }
@@ -633,54 +635,38 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual void UpdateMany(IEnumerable<TEntity> entities, bool autoSave = false)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
+
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
+            var now = DateTime.Now;
 
-            if (dbContext.Entry(entities).State == EntityState.Modified)
+            foreach (var entity in entityArray)
             {
-                var now = DateTime.Now;
-
-                foreach (var entity in entities)
-                {
-                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
-                    if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
-
-                    OnBeforeUpdate(entity);
-                }
+                ApplyUpdateStamps(dbContext, entity, now);
             }
-
-            dbContext.Set<TEntity>().UpdateRange(entities);
 
             if (autoSave) dbContext.SaveChanges();
         }
 
         public virtual async Task UpdateManyAsync(IEnumerable<TEntity> entities, bool autoSave = false, CancellationToken cancellationToken = default)
         {
-            if (entities == null) throw new ArgumentNullException(nameof(entities));
+            ArgumentNullException.ThrowIfNull(entities);
 
-            if (entities.Count() <= 0) return;
+            var entityArray = entities as TEntity[] ?? entities.ToArray();
+
+            if (entityArray.Length == 0) return;
 
             TDbContext dbContext = GetDbContext();
+            var now = DateTime.Now;
 
-            if (dbContext.Entry(entities).State == EntityState.Modified)
+            foreach (var entity in entityArray)
             {
-                var now = DateTime.Now;
-
-                foreach (var entity in entities)
-                {
-                    if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
-
-                    if (entity is IEntityUpdateTime ct) ct.UpdateTime = now;
-
-                    OnBeforeUpdate(entity);
-                }
+                ApplyUpdateStamps(dbContext, entity, now);
             }
-
-            dbContext.Set<TEntity>().UpdateRange(entities);
 
             if (autoSave) await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -704,6 +690,42 @@ namespace EasyCore.MongoDbRepository.Repository
         }
 
         public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
+
+        private void ApplyDelete(TDbContext dbContext, TEntity entity)
+        {
+            if (entity is IEntitySoftDelete softDelete)
+            {
+                softDelete.IsDeleted = true;
+
+                if (dbContext.Set<TEntity>().Local.All(e => e != entity))
+                {
+                    dbContext.Update(entity);
+                }
+
+                OnBeforeDelete(entity);
+                return;
+            }
+
+            dbContext.Set<TEntity>().Remove(entity);
+            OnBeforeDelete(entity);
+        }
+
+        private void ApplyUpdateStamps(TDbContext dbContext, TEntity entity, DateTime now)
+        {
+            if (dbContext.Set<TEntity>().Local.All(e => e != entity))
+            {
+                dbContext.Set<TEntity>().Attach(entity);
+                dbContext.Update(entity);
+            }
+
+            if (entity is IEntityTenant entityTenant)
+                entityTenant.TenantId = TenantFilter.TenantId;
+
+            if (entity is IEntityUpdateTime ct)
+                ct.UpdateTime = now;
+
+            OnBeforeUpdate(entity);
+        }
 
         private List<IDataFilter> GetDataFilters(Type entityType)
         {

@@ -4,6 +4,6 @@ namespace EFCore.Entity
 {
     public class CustomEntity : EasyCoreEntity<Guid>
     {
-        public string CreateId{ get; set; }
+        public string? CreateId { get; set; }
     }
 }

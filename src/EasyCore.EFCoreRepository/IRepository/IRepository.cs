@@ -39,7 +39,7 @@ namespace EasyCore.EFCoreRepository.IRepository
         /// </summary>
         /// <param name="predicate">Filter expression.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>The entity if found; otherwise null or exception depending on implementation.</returns>
+        /// <returns>The entity if found; otherwise throws if not found.</returns>
         Task<TEntity> GetFirstAsync(
             [NotNull] Expression<Func<TEntity, bool>> predicate,
 

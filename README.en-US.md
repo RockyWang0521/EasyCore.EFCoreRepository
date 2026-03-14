@@ -1,4 +1,4 @@
-# 🏗️ EasyCore.EFCoreRepository
+﻿# 🏗️ EasyCore.EFCoreRepository
 
 [中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.md) | [MongoDb 中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.md)
 
@@ -91,7 +91,7 @@ public class RepositoryController : ControllerBase
     [HttpGet]
     public async Task<TestEntity> Get()
     {
-        return await _repository.GetAsync(e => e.Name == "Test");
+        return await _repository.GetFirstAsync(e => e.Name == "Test");
     }
 
     // ➕ Insert
@@ -109,7 +109,7 @@ public class RepositoryController : ControllerBase
     [HttpPut]
     public async Task Put()
     {
-        var entity = await _repository.GetAsync(e => e.Name == "Test");
+        var entity = await _repository.GetFirstAsync(e => e.Name == "Test");
         entity.Age = 20;
         await _repository.UpdateAsync(entity, true);
     }
@@ -118,7 +118,7 @@ public class RepositoryController : ControllerBase
     [HttpDelete]
     public async Task Delete()
     {
-        var entity = await _repository.GetAsync(e => e.Age == 20);
+        var entity = await _repository.GetFirstAsync(e => e.Age == 20);
         entity.IsDeleted = true;
         await _repository.UpdateAsync(entity, true);
     }
@@ -172,36 +172,30 @@ int SaveChanges();
 ##### 🔍 Query Operations
 ```
 // Get List
-Task<List<TEntity>> GetListAsync(bool includeDetails = false, CancellationToken cancellationToken = default);
-
-List<TEntity> GetList(bool includeDetails = false);
+Task<List<TEntity>> GetListAsync(CancellationToken cancellationToken = default);
+List<TEntity> GetList();
+Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate);
 
 // Count
 Task<long> GetCountAsync(CancellationToken cancellationToken = default);
-
 long GetCount();
-
 Task<long> GetCountAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
-
 long GetCount(Expression<Func<TEntity, bool>> predicate);
 
-// Paged Query
-Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false, CancellationToken cancellationToken = default);
+// Paged query (optional ordering)
+Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, CancellationToken cancellationToken = default);
+List<TEntity> GetPagedList(int skipCount, int maxResultCount);
+Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true, CancellationToken cancellationToken = default);
+List<TEntity> GetPagedList(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true);
 
-List<TEntity> GetPagedList(int skipCount, int maxResultCount, string? sorting = null, bool includeDetails = false);
-
-// Conditional Query
-Task<List<TEntity>> GetListAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
-
-List<TEntity> GetList(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
-
-// Single Entity Query
-Task<TEntity> GetAsync(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false, CancellationToken cancellationToken = default);
-
-TEntity? Get(Expression<Func<TEntity, bool>> predicate, bool includeDetails = false);
+// Single entity (GetFirstAsync throws if not found; GetFirst returns null)
+Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+TEntity? GetFirst(Expression<Func<TEntity, bool>> predicate);
 ```
 ##### ⚡ Direct Delete Operations
 ```
+// DeleteDirect* bypasses soft-delete/tenant filters
 Task DeleteDirectAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 
 void DeleteDirect(Expression<Func<TEntity, bool>> predicate);
@@ -266,7 +260,8 @@ public class Program
         // ✨ Use EasyCore EFCore Repository
         builder.Services.EasyCoreEFCoreRepository();
         // 🔄 Use EasyCore UnitOfWork
-        builder.Services.EasyCoreUnitOfWork();
+        builder.Services.EasyCoreUnitOfWork()
+            .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
 
         var app = builder.Build();
 
@@ -348,18 +343,13 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 
 ### 1. 📝 Program Registration
 ```
-builder.Services.AddDbContext<TestDbContext>(op =>
-{
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
-});
+builder.Services.EasyCoreEntityChange()
+    .AddHandler<EntityChange>();
 
-builder.Services.AddDbContext<Test2DbContext>(op =>
+builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(builder.Services); // ✨ Use EasyCore EFCore Entity Change Tracking
+    op.UseEasyCoreEntityChange(sp);
 });
-
-// 🔧 Enable EasyCore Entity Change Service
-builder.Services.EasyCoreEntityChange();
 ```
 ### 2. 🎯 Using Entity Change Tracking
 ```

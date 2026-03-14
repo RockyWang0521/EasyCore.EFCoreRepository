@@ -9,14 +9,17 @@ namespace EasyCore.MongoDbRepository
     {
         public static void EasyCoreMongoDbRepository(this IServiceCollection services)
         {
-            var registeredDbContexts = services.Where(d => typeof(DbContext).IsAssignableFrom(d.ServiceType)).Select(d => d.ServiceType).ToHashSet();
+            var registeredDbContexts = services
+                .Where(d => typeof(DbContext).IsAssignableFrom(d.ServiceType))
+                .Select(d => d.ServiceType)
+                .ToHashSet();
 
             if (!registeredDbContexts.Any()) return;
 
             services.AddHttpContextAccessor();
 
+            services.TryAddSingleton<ITenantProvider, HttpContextTenantProvider>();
             services.TryAddTransient<ITenantFilter, TenantFilter>();
-
             services.TryAddTransient<ISoftDeleteFilter, SoftDeleteFilter>();
         }
     }

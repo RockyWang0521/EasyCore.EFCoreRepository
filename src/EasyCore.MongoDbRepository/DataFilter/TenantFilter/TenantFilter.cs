@@ -1,31 +1,33 @@
-﻿using EasyCore.MongoDbRepository.EntityBase;
-using Microsoft.AspNetCore.Http;
+﻿using EasyCore.MongoDbRepository.DataFilter;
+using EasyCore.MongoDbRepository.EntityBase;
+using Microsoft.EntityFrameworkCore;
 
 namespace EasyCore.MongoDbRepository
 {
     /// <summary>
-    /// 多租户数据过滤器
+    /// Multi-tenant data filter. Fail-closed when tenant id is unavailable.
     /// </summary>
-    internal class TenantFilter : EasyCore.MongoDbRepository.DataFilter.ITenantFilter
+    internal class TenantFilter : ITenantFilter
     {
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ITenantProvider _tenantProvider;
 
-        public string TenantId => _httpContextAccessor.HttpContext?.Items["TenantId"]?.ToString() ?? string.Empty;
+        public string TenantId => _tenantProvider.GetTenantId() ?? string.Empty;
 
-        public TenantFilter(IHttpContextAccessor httpContextAccessor)
+        public TenantFilter(ITenantProvider tenantProvider)
         {
-            _httpContextAccessor = httpContextAccessor;
+            _tenantProvider = tenantProvider;
         }
 
         public IQueryable<TEntity> Apply<TEntity>(IQueryable<TEntity> query) where TEntity : class, IEntity
         {
-            if (typeof(IEntityTenant).IsAssignableFrom(typeof(TEntity)))
-            {
-                var tenantId = TenantId;
-                if (string.IsNullOrEmpty(tenantId)) return query;
-                query = query.Where(e => ((IEntityTenant)e!).TenantId == tenantId);
-            }
-            return query;
+            if (!typeof(IEntityTenant).IsAssignableFrom(typeof(TEntity)))
+                return query;
+
+            var tenantId = TenantId;
+            if (string.IsNullOrEmpty(tenantId))
+                return query.Where(_ => false);
+
+            return query.Where(e => EF.Property<string>(e, nameof(IEntityTenant.TenantId)) == tenantId);
         }
     }
 }

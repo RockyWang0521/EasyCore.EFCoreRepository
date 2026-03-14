@@ -9,26 +9,23 @@ namespace EasyCore.MongoDbRepository.Demo.EntityChange
 
         public EntityChange(ILogger<EntityChange> logger) => _logger = logger;
 
-        public async Task OnAddedAsync(TestEntity entity)
+        public Task OnAddedAsync(TestEntity entity)
         {
-            _logger.LogInformation($"Entity added: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
-
-            await Task.CompletedTask;
-
-            throw new Exception("Simulated exception in OnDeletedAsync");
+            _logger.LogInformation("Entity added: Id:{Id}; Name:{Name}; Age:{Age};", entity.Id, entity.Name, entity.Age);
+            return Task.CompletedTask;
         }
 
-        public async Task OnDeletedAsync(TestEntity entity)
+        public Task OnDeletedAsync(TestEntity entity)
         {
-            _logger.LogInformation($"Entity deleted: Id:{entity.Id}; Name:{entity.Name};Age:{entity.Age};");
-
-            await Task.CompletedTask;
+            _logger.LogInformation("Entity deleted: Id:{Id}; Name:{Name}; Age:{Age};", entity.Id, entity.Name, entity.Age);
+            return Task.CompletedTask;
         }
 
         public Task OnUpdatedAsync(TestEntity oldEntity, TestEntity currentEntity)
         {
-            _logger.LogInformation($"Entity updated: Id:{oldEntity.Id} --> Id:{currentEntity.Id}; Name:{oldEntity.Name} --> Name:{currentEntity.Name};Age:{oldEntity.Age} --> Age:{currentEntity.Age};");
-
+            _logger.LogInformation(
+                "Entity updated: Id:{OldId} --> Id:{NewId}; Name:{OldName} --> Name:{NewName}; Age:{OldAge} --> Age:{NewAge};",
+                oldEntity.Id, currentEntity.Id, oldEntity.Name, currentEntity.Name, oldEntity.Age, currentEntity.Age);
             return Task.CompletedTask;
         }
     }

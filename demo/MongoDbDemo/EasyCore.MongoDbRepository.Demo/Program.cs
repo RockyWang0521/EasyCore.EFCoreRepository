@@ -1,5 +1,6 @@
 using EasyCore.Dependencie;
 using EasyCore.EntityChange;
+using EasyCore.MongoDbRepository;
 using MongoDbContext.EntityFrameworkCore.EFDbContext;
 
 namespace EasyCore.MongoDbRepository.Demo
@@ -15,30 +16,26 @@ namespace EasyCore.MongoDbRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.AddDbContext<TestDbContext>(op =>
+            builder.Services.EasyCoreEntityChange()
+                .AddHandler<EasyCore.MongoDbRepository.Demo.EntityChange.EntityChange>();
+
+            builder.Services.AddDbContext<TestDbContext>((sp, op) =>
             {
-                op.UseEasyCoreEntityChange(builder.Services); // Use EasyCore EFCore Entity Change
+                op.UseEasyCoreEntityChange(sp);
             });
 
-            // Use EasyCore MongoDb Repository
             builder.Services.EasyCoreMongoDbRepository();
-
-            // Use EasyCore Entity Change
-            builder.Services.EasyCoreEntityChange();
 
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
-
                 app.UseSwaggerUI();
             }
 
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }
