@@ -41,13 +41,7 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         [HttpDelete]
         public async Task Delete()
         {
-            _repository
-                .RemoveFilter(typeof(ITenantFilter))
-                .RemoveFilter(typeof(ISoftDeleteFilter))
-                .AddFilter(typeof(CustomDataFilter))
-                .AsQueryable().Where(e => e.Name == "Test").ToList();
-
-            await Task.CompletedTask;
+            await _repository.DeleteAsync(e => e.Name == "Test");
         }
     }
 }

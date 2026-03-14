@@ -13,9 +13,12 @@ namespace EasyCore.MongoDbRepository.Repository
     /// </summary>
     /// <typeparam name="TDbContext">DbContext</typeparam>
     /// <typeparam name="TEntity">Entity</typeparam>
-    public class MongoDbRepository<TDbContext, TEntity> : BaseMongoDbRepository, IMongoDbRepository<TDbContext, TEntity>
-           where TDbContext : DbContext
-           where TEntity : class, IEntity
+    public class MongoDbRepository<TDbContext, TEntity> :
+        BaseMongoDbRepository,
+        IMongoDbRepository<TEntity>,
+        IMongoDbRepository<TDbContext, TEntity>
+        where TDbContext : DbContext
+        where TEntity : class, IEntity
     {
         private readonly TDbContext _dbContext;
         private readonly IServiceProvider _serviceProvider;

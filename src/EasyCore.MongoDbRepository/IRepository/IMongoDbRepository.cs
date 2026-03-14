@@ -6,6 +6,16 @@ namespace EasyCore.MongoDbRepository.IRepository
     /// <summary>
     /// Interface for the repository.
     /// </summary>
+    /// <typeparam name="TEntity"></typeparam>
+    internal interface IMongoDbRepository<TEntity> : IRepository<TEntity>, IReadOnlyRepository<TEntity>, IBasicRepository<TEntity>
+           where TEntity : class, IEntity
+    {
+
+    }
+
+    /// <summary>
+    /// Interface for the repository.
+    /// </summary>
     /// <typeparam name="TDbContext"></typeparam>
     /// <typeparam name="TEntity"></typeparam>
     internal interface IMongoDbRepository<TDbContext, TEntity> : IRepository<TDbContext, TEntity>, IReadOnlyRepository<TEntity>, IBasicRepository<TEntity>

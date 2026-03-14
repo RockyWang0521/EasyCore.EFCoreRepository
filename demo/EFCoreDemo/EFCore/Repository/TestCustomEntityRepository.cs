@@ -13,15 +13,17 @@ namespace EFCore.Repository
 
         }
 
+        /// <summary>
+        /// You can also add data filters in the repository layer.
+        /// </summary>
+        /// <returns></returns>
         public List<IDataFilter> TestCustomEntityGetDataFilters()
         {
             var aaa = DataFilters;
 
-            //AddOnce(DataFilters, typeof(CustomDataFilter));
+            AddOnce(DataFilters, typeof(CustomDataFilter));
 
             aaa = DataFilters;
-
-            //this.AsQueryable().Where(x => x.Id == Guid.NewGuid());
 
             return DataFilters;
         }

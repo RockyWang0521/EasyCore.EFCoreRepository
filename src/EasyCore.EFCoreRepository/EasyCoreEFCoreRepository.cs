@@ -1,10 +1,7 @@
 ﻿using EasyCore.EFCoreRepository.DataFilter;
-using EasyCore.EFCoreRepository.IRepository;
-using EasyCore.EFCoreRepository.Repository;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Reflection;
 
 namespace EasyCore.EFCoreRepository
 {

@@ -26,9 +26,9 @@ namespace EasyCore.EFCoreRepository.IRepository
 
     /// <summary>
     /// Defines a full-featured repository that supports read, write, filter,
-    /// and predicate-based operations for a specific DbContext.
+    /// and predicate-based operations for a specific entity type.
     /// </summary>
-    /// <typeparam name="TEntity">Entity type.</typeparam>
+    /// <typeparam name="TEntity"></typeparam>
     public interface IRepository<TEntity> :
         IReadOnlyRepository<TEntity>,
         IBasicRepository<TEntity>

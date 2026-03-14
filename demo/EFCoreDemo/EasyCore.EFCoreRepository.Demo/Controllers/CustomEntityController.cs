@@ -1,5 +1,8 @@
-﻿using EFCore.Repository;
+﻿using EasyCore.EFCoreRepository.DataFilter;
+using EasyCore.EFCoreRepository.Demo.DataFilter;
+using EFCore.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace EasyCore.EFCoreRepository.Demo.Controllers
 {
@@ -15,6 +18,22 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         public async Task Post()
         {
             await _repository.InsertAsync(new EFCore.Entity.TestCustomEntity(), true);
+        }
+
+        /// <summary>
+        /// Can freely add, remove, or modify data filters
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        public async Task Filter()
+        {
+            var entityDataFilters = _repository.TestCustomEntityGetDataFilters();
+
+            var entitys = await _repository
+                             .RemoveFilter(typeof(ITenantFilter))
+                             .RemoveFilter(typeof(ISoftDeleteFilter))
+                             .AddFilter(typeof(CustomDataFilter))
+                             .AsQueryable().Where(e => e.CreateId == "Test").ToListAsync();
         }
     }
 }

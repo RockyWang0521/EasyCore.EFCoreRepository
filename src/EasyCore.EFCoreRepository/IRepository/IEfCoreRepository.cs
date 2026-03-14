@@ -6,8 +6,7 @@ namespace EasyCore.EFCoreRepository.IRepository
     /// <summary>
     /// Interface for the repository.
     /// </summary>
-    /// <typeparam name="TDbContext"></typeparam>
-    /// <typeparam name="TEntity"></typeparam>
+    /// <typeparam name="TEntity"> The entity type. </typeparam>
     internal interface IEfCoreRepository< TEntity> : IRepository<TEntity>, IReadOnlyRepository<TEntity>, IBasicRepository<TEntity>
            where TEntity : class, IEntity
     {
@@ -17,8 +16,8 @@ namespace EasyCore.EFCoreRepository.IRepository
     /// <summary>
     /// Interface for the repository.
     /// </summary>
-    /// <typeparam name="TDbContext"></typeparam>
-    /// <typeparam name="TEntity"></typeparam>
+    /// <typeparam name="TDbContext"> The database context type. </typeparam>
+    /// <typeparam name="TEntity"> The entity type. </typeparam>
     internal interface IEfCoreRepository<TDbContext, TEntity> : IRepository<TDbContext,TEntity>, IReadOnlyRepository<TEntity>, IBasicRepository<TEntity>
            where TDbContext : DbContext
            where TEntity : class, IEntity
