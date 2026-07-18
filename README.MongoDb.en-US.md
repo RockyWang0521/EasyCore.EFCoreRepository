@@ -1,6 +1,6 @@
-﻿# 🏗️ EasyCore.MongoDbRepository
+# 🏗️ EasyCore.MongoDbRepository
 
-[中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.md) | [EFCore 中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.md)
+[中文 README](https://github.com/RockyWang0521/EasyCore.EFCoreRepository/blob/master/README.MongoDb.md) | [EFCore 中文 README](https://github.com/RockyWang0521/EasyCore.EFCoreRepository/blob/master/README.md)
 
 📚 Overview
 Repository is a crucial concept in software development, widely used especially in Domain-Driven Design (DDD) 🎯 and the Data Access Layer. Repository is a design pattern 🏛️ that abstracts the data access layer, encapsulating data access logic and decoupling upper-level business logic from underlying data storage. Repository acts like an interface 📦 to the data warehouse, managing persistence operations (CRUD) for entity objects.

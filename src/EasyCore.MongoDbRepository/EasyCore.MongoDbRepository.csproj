@@ -5,18 +5,32 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-    <PackageReadmeFile>README.MongoDb.en-US.md</PackageReadmeFile>
-    <Description>.net core MongoDb Repository.</Description>
-    <Version>8.1.0</Version>
+    <PackageIcon>EasyCoreLogo.png</PackageIcon>
+    <PackageReadmeFile>README.MongoDb.md</PackageReadmeFile>
+    <IncludeSymbols>False</IncludeSymbols>
+    <RepositoryType>git</RepositoryType>
+    <Authors>WZHY</Authors>
+    <Description>.NET 8 EasyCore.MongoDbRepository — MongoDB EF Core repository with soft-delete, tenant filters, and paging APIs.</Description>
+    <PackageProjectUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository</PackageProjectUrl>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MulanPSL-2.0</PackageLicenseExpression>
     <AssemblyVersion>8.1.0.0</AssemblyVersion>
     <FileVersion>8.1.0.0</FileVersion>
+    <Version>8.1.0</Version>
     <OutputType>Library</OutputType>
+    <RepositoryUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository.git</RepositoryUrl>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\png\EasyCoreLogo.png" Pack="True" PackagePath="\" />
-    <None Include="..\..\README.MongoDb.en-US.md" Pack="True" PackagePath="\" />
-    <None Include="..\..\LICENSE" Pack="True" PackagePath="\" />
+    <None Include="..\..\png\EasyCoreLogo.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\..\README.MongoDb.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
