@@ -221,6 +221,8 @@ EasyCore.EFCoreRepository includes two practical built-in data filters:
 
 🏢 ITenantFilter - Tenant Filter
 
+Default tenant source (`ITenantProvider`) matches AspNetCore.Mvc `ICurrentTenant`: `HttpContext.Items["TenantId"]`, then `X-Tenant-Id` header.
+
 #### Custom Filter Example 🎨:
 ```
 public class CustomDataFilter : IDataFilter, ITransientDependencie

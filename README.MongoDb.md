@@ -231,6 +231,8 @@ EasyCore.MongoDbRepository 内置了两个实用的数据过滤器：
 
 🏢 ITenantFilter - 租户过滤器
 
+默认租户来源（`ITenantProvider`）与 AspNetCore.Mvc `ICurrentTenant` 对齐：先 `HttpContext.Items["TenantId"]`，再请求头 `X-Tenant-Id`。
+
 #### 自定义过滤器示例 🎨：
 ```
 public class CustomDataFilter : IDataFilter, ITransientDependencie
