@@ -1,4 +1,4 @@
-﻿using EasyCore.EFCoreRepository.EntityBase;
+using EasyCore.EFCoreRepository.EntityBase;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
@@ -43,6 +43,13 @@ namespace EasyCore.EFCoreRepository.IRepository
         Task<TEntity> GetFirstAsync(
             [NotNull] Expression<Func<TEntity, bool>> predicate,
 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a single entity matching the specified predicate, or null if none.
+        /// </summary>
+        Task<TEntity?> GetFirstOrDefaultAsync(
+            [NotNull] Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default);
 
         /// <summary>

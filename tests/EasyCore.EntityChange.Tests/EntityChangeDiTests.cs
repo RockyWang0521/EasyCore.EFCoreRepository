@@ -21,28 +21,49 @@ public class ChangeDbContext : DbContext
     public DbSet<ChangeEntity> Entities => Set<ChangeEntity>();
 }
 
-public class RecordingDeletedHandler : IEntityDeletedChangeHandler<ChangeEntity>
+public class RecordingHandlers :
+    IEntityAddedChangeHandler<ChangeEntity>,
+    IEntityUpdatedChangeHandler<ChangeEntity>,
+    IEntityDeletedChangeHandler<ChangeEntity>
 {
-    public static int CallCount;
+    public static int AddedCount;
+    public static int UpdatedCount;
+    public static int DeletedCount;
+
+    public static void Reset()
+    {
+        AddedCount = 0;
+        UpdatedCount = 0;
+        DeletedCount = 0;
+    }
+
+    public Task OnAddedAsync(ChangeEntity entity)
+    {
+        AddedCount++;
+        return Task.CompletedTask;
+    }
+
+    public Task OnUpdatedAsync(ChangeEntity oldEntity, ChangeEntity newEntity)
+    {
+        UpdatedCount++;
+        return Task.CompletedTask;
+    }
 
     public Task OnDeletedAsync(ChangeEntity entity)
     {
-        CallCount++;
+        DeletedCount++;
         return Task.CompletedTask;
     }
 }
 
 public class EntityChangeDiTests
 {
-    [Fact]
-    public async Task SoftDelete_DispatchesDeletedHandler_WithoutBuildServiceProvider()
+    private static ServiceProvider BuildProvider()
     {
-        RecordingDeletedHandler.CallCount = 0;
-
         var services = new ServiceCollection();
         services.AddLogging();
         services.EasyCoreEntityChange()
-            .AddHandler<RecordingDeletedHandler>();
+            .AddHandler<RecordingHandlers>();
 
         services.AddDbContext<ChangeDbContext>((sp, o) =>
         {
@@ -50,7 +71,15 @@ public class EntityChangeDiTests
             o.UseEasyCoreEntityChange(sp);
         });
 
-        await using var sp = services.BuildServiceProvider();
+        return services.BuildServiceProvider();
+    }
+
+    [Fact]
+    public async Task SoftDelete_DispatchesDeletedHandler_WithoutBuildServiceProvider()
+    {
+        RecordingHandlers.Reset();
+
+        await using var sp = BuildProvider();
         using var scope = sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ChangeDbContext>();
 
@@ -61,6 +90,32 @@ public class EntityChangeDiTests
         entity.IsDeleted = true;
         await db.SaveChangesAsync();
 
-        Assert.Equal(1, RecordingDeletedHandler.CallCount);
+        Assert.Equal(1, RecordingHandlers.AddedCount);
+        Assert.Equal(1, RecordingHandlers.DeletedCount);
+        Assert.Equal(0, RecordingHandlers.UpdatedCount);
+    }
+
+    [Fact]
+    public void Sync_InsertUpdateSoftDelete_DispatchesAllHandlers()
+    {
+        RecordingHandlers.Reset();
+
+        using var sp = BuildProvider();
+        using var scope = sp.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ChangeDbContext>();
+
+        var entity = new ChangeEntity { Id = Guid.NewGuid(), Name = "x" };
+        db.Entities.Add(entity);
+        db.SaveChanges();
+        Assert.Equal(1, RecordingHandlers.AddedCount);
+
+        entity.Name = "y";
+        db.SaveChanges();
+        Assert.Equal(1, RecordingHandlers.UpdatedCount);
+
+        entity.IsDeleted = true;
+        db.SaveChanges();
+        Assert.Equal(1, RecordingHandlers.DeletedCount);
+        Assert.Equal(1, RecordingHandlers.UpdatedCount);
     }
 }

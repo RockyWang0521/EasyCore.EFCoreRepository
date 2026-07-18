@@ -1,4 +1,4 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented in this file.
 
@@ -8,7 +8,7 @@ All notable changes to this project are documented in this file.
 
 - `UseEasyCoreEntityChange` now requires `IServiceProvider` (call from `AddDbContext((sp, opts) => ...)`). `BuildServiceProvider()` is removed.
 - `EasyCoreEntityChange()` / `EasyCoreUnitOfWork()` no longer scan all DLLs by default. Use `.AddHandler<T>()` / `.RegisterSaveChangesFor<TService,TImpl>()` or opt-in `.EnableAssemblyScanning()`.
-- Tenant filter is **fail-closed**: empty tenant id yields no rows (was: filter skipped).
+- Tenant filter: when tenant id is present, filter by it; when absent, match rows with `TenantId == null` (not fail-closed empty).
 - `Delete` on non-soft-delete entities now hard-deletes (was: silent no-op).
 - `GetFirstAsync` throws when not found (was: returned null).
 - Package license metadata aligned with repository `LICENSE` (Mulan PSL v2) via `PackageLicenseFile`.

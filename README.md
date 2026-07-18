@@ -1,4 +1,4 @@
-﻿# 🏗️ EasyCore.EFCoreRepository
+# 🏗️ EasyCore.EFCoreRepository
 
 [English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.en-US.md)  |  [MongoDb English README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.en-US.md)
 
@@ -194,8 +194,9 @@ List<TEntity> GetPagedList(int skipCount, int maxResultCount);
 Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true, CancellationToken cancellationToken = default);
 List<TEntity> GetPagedList(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true);
 
-// 单实体查询（GetFirstAsync 未找到时抛出异常；GetFirst 返回 null）
+// 单实体查询（GetFirstAsync 未找到时抛出异常；GetFirst / GetFirstOrDefaultAsync 返回 null）
 Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+Task<TEntity?> GetFirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 TEntity? GetFirst(Expression<Func<TEntity, bool>> predicate);
 ```
 ##### ⚡ 直接删除操作
@@ -222,7 +223,7 @@ EasyCore.EFCoreRepository 内置了两个实用的数据过滤器：
 
 🗑️ ISoftDeleteFilter - 软删除过滤器
 
-🏢 ITenantFilter - 租户过滤器（未解析到 TenantId 时**失败关闭**，返回空结果，防止跨租户泄漏）
+🏢 ITenantFilter - 租户过滤器（有租户值时按 TenantId 过滤；无租户时只查 TenantId 为 null 的数据）
 
 可通过 `ITenantProvider` 自定义租户来源（默认从 `HttpContext.Items["TenantId"]` 读取）。
 

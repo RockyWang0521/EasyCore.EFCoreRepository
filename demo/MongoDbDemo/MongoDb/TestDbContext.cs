@@ -15,12 +15,18 @@ namespace MongoDbContext.EntityFrameworkCore.EFDbContext
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder
-                .UseMongoDB("mongodb://admin:123456@localhost:27017/testdb?authSource=admin", "testmongodb")
-                .UseLoggerFactory(LoggerFactory.Create(option =>
-                {
-                    option.AddConsole();
-                }));
+            // Keep DI-registered interceptors (EntityChange); only set provider when not configured.
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseMongoDB(
+                    "mongodb://admin:123456@localhost:27017/testdb?authSource=admin",
+                    "testmongodb");
+            }
+
+            optionsBuilder.UseLoggerFactory(LoggerFactory.Create(option =>
+            {
+                option.AddConsole();
+            }));
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

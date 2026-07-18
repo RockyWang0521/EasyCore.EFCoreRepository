@@ -1,11 +1,13 @@
-﻿using EasyCore.MongoDbRepository.DataFilter;
+using EasyCore.MongoDbRepository.DataFilter;
 using EasyCore.MongoDbRepository.EntityBase;
 using Microsoft.EntityFrameworkCore;
 
 namespace EasyCore.MongoDbRepository
 {
     /// <summary>
-    /// Multi-tenant data filter. Fail-closed when tenant id is unavailable.
+    /// Multi-tenant data filter.
+    /// When current tenant id is available, filters by that value;
+    /// when not, filters to rows whose TenantId is null.
     /// </summary>
     internal class TenantFilter : ITenantFilter
     {
@@ -24,8 +26,10 @@ namespace EasyCore.MongoDbRepository
                 return query;
 
             var tenantId = TenantId;
-            if (string.IsNullOrEmpty(tenantId))
-                return query.Where(_ => false);
+            if (string.IsNullOrWhiteSpace(tenantId))
+            {
+                return query.Where(e => EF.Property<string>(e, nameof(IEntityTenant.TenantId)) == null);
+            }
 
             return query.Where(e => EF.Property<string>(e, nameof(IEntityTenant.TenantId)) == tenantId);
         }

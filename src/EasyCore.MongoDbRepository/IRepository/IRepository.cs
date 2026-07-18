@@ -1,4 +1,4 @@
-﻿using EasyCore.MongoDbRepository.EntityBase;
+using EasyCore.MongoDbRepository.EntityBase;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
@@ -27,6 +27,13 @@ namespace EasyCore.MongoDbRepository.IRepository
         Task<TEntity> GetFirstAsync(
             [NotNull] Expression<Func<TEntity, bool>> predicate,
 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a single entity matching the specified predicate, or null if none.
+        /// </summary>
+        Task<TEntity?> GetFirstOrDefaultAsync(
+            [NotNull] Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -164,6 +171,13 @@ namespace EasyCore.MongoDbRepository.IRepository
         Task<TEntity> GetFirstAsync(
             [NotNull] Expression<Func<TEntity, bool>> predicate,
 
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a single entity matching the specified predicate, or null if none.
+        /// </summary>
+        Task<TEntity?> GetFirstOrDefaultAsync(
+            [NotNull] Expression<Func<TEntity, bool>> predicate,
             CancellationToken cancellationToken = default);
 
         /// <summary>

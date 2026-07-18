@@ -96,17 +96,14 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public virtual void OnBeforeAdd(TEntity entity)
         {
-
         }
 
         public virtual void OnBeforeUpdate(TEntity entity)
         {
-
         }
 
         public virtual void OnBeforeDelete(TEntity entity)
         {
-
         }
 
         #endregion
@@ -277,6 +274,17 @@ namespace EasyCore.MongoDbRepository.Repository
             query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
 
             return await query.FirstAsync(cancellationToken);
+        }
+
+        public virtual async Task<TEntity?> GetFirstOrDefaultAsync([NotNull] Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default)
+        {
+            TDbContext dbContext = GetDbContext();
+
+            var query = dbContext.Set<TEntity>().Where(predicate);
+
+            query = _dataFilters.Aggregate(query, (current, filter) => filter.Apply(current));
+
+            return await query.FirstOrDefaultAsync(cancellationToken);
         }
 
         public virtual List<TEntity> GetList([NotNull] Expression<Func<TEntity, bool>> predicate)
@@ -495,7 +503,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
             var savedEntity = dbContext.Set<TEntity>().Add(entity).Entity;
 
-            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+            if (savedEntity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
@@ -514,7 +522,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
             var savedEntity = (await dbContext.Set<TEntity>().AddAsync(entity)).Entity;
 
-            if (savedEntity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+            if (savedEntity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
 
@@ -539,7 +547,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
             foreach (var entity in entities)
             {
-                if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
+                if (entity is IEntityTenant tenant) ApplyTenantId(tenant);
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
@@ -565,7 +573,7 @@ namespace EasyCore.MongoDbRepository.Repository
 
             foreach (var entity in entities)
             {
-                if (entity is IEntityTenant tenant) tenant.TenantId = TenantFilter.TenantId;
+                if (entity is IEntityTenant tenant) ApplyTenantId(tenant);
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
@@ -599,7 +607,7 @@ namespace EasyCore.MongoDbRepository.Repository
                 if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
-            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+            if (entity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
             OnBeforeUpdate(entity);
 
@@ -624,7 +632,7 @@ namespace EasyCore.MongoDbRepository.Repository
                 if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
-            if (entity is IEntityTenant entityTenant) entityTenant.TenantId = TenantFilter.TenantId;
+            if (entity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
             OnBeforeUpdate(entity);
 
@@ -691,7 +699,10 @@ namespace EasyCore.MongoDbRepository.Repository
 
         public TDbContext GetDbContext() => _serviceProvider == null ? _dbContext : _serviceProvider.GetRequiredService<TDbContext>();
 
-        private void ApplyDelete(TDbContext dbContext, TEntity entity)
+        /// <summary>
+        /// Soft-delete or hard-delete a single entity, then invoke <see cref="OnBeforeDelete"/>.
+        /// </summary>
+        protected virtual void ApplyDelete(TDbContext dbContext, TEntity entity)
         {
             if (entity is IEntitySoftDelete softDelete)
             {
@@ -710,7 +721,10 @@ namespace EasyCore.MongoDbRepository.Repository
             OnBeforeDelete(entity);
         }
 
-        private void ApplyUpdateStamps(TDbContext dbContext, TEntity entity, DateTime now)
+        /// <summary>
+        /// Attach/update stamps for bulk update, then invoke <see cref="OnBeforeUpdate"/>.
+        /// </summary>
+        protected virtual void ApplyUpdateStamps(TDbContext dbContext, TEntity entity, DateTime now)
         {
             if (dbContext.Set<TEntity>().Local.All(e => e != entity))
             {
@@ -719,12 +733,21 @@ namespace EasyCore.MongoDbRepository.Repository
             }
 
             if (entity is IEntityTenant entityTenant)
-                entityTenant.TenantId = TenantFilter.TenantId;
+                ApplyTenantId(entityTenant);
 
             if (entity is IEntityUpdateTime ct)
                 ct.UpdateTime = now;
 
             OnBeforeUpdate(entity);
+        }
+
+        /// <summary>
+        /// Stamps tenant id from the current provider. Uses null when no tenant is available (never empty string).
+        /// </summary>
+        protected virtual void ApplyTenantId(IEntityTenant entity)
+        {
+            var tenantId = TenantFilter.TenantId;
+            entity.TenantId = string.IsNullOrWhiteSpace(tenantId) ? null : tenantId;
         }
 
         private List<IDataFilter> GetDataFilters(Type entityType)
@@ -740,14 +763,20 @@ namespace EasyCore.MongoDbRepository.Repository
             return dataFilters;
         }
 
-        private MongoDbRepository<TDbContext, TEntity> Clone(List<IDataFilter> dataFilters)
+        /// <summary>
+        /// Clones this repository with a new filter list while preserving the runtime type,
+        /// so overrides of OnBeforeAdd/Update/Delete on derived repositories remain effective.
+        /// </summary>
+        protected virtual MongoDbRepository<TDbContext, TEntity> CreateClone(List<IDataFilter> dataFilters)
         {
-            var clone = new MongoDbRepository<TDbContext, TEntity>(_dbContext, _serviceProvider, dataFilters);
-
+            var clone = (MongoDbRepository<TDbContext, TEntity>)MemberwiseClone();
+            clone._dataFilters = new List<IDataFilter>(dataFilters);
             return clone;
         }
 
-        private MongoDbRepository(TDbContext dbContext, IServiceProvider serviceProvider, List<IDataFilter> dataFilters) : base(serviceProvider)
+        private MongoDbRepository<TDbContext, TEntity> Clone(List<IDataFilter> dataFilters) => CreateClone(dataFilters);
+
+        protected MongoDbRepository(TDbContext dbContext, IServiceProvider serviceProvider, List<IDataFilter> dataFilters) : base(serviceProvider)
         {
             _dbContext = dbContext;
             _serviceProvider = serviceProvider;

@@ -10,21 +10,30 @@ namespace EasyCore.EntityChange.EntityChange
     /// <summary>
     /// Entity change interceptor that dispatches typed handlers on SaveChanges.
     /// Soft-delete transitions (IsDeleted: false → true) are treated as Deleted.
+    /// Handles both sync <see cref="SavingChanges"/> and async <see cref="SavingChangesAsync"/>.
     /// </summary>
     public class EntityChangeInterceptor : SaveChangesInterceptor
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<EntityChangeInterceptor> _logger;
         private readonly EntityChangeOptions _options;
 
         public EntityChangeInterceptor(
-            IServiceProvider serviceProvider,
+            IServiceScopeFactory scopeFactory,
             ILogger<EntityChangeInterceptor> logger,
             IOptions<EntityChangeOptions>? options = null)
         {
-            _serviceProvider = serviceProvider;
+            _scopeFactory = scopeFactory;
             _logger = logger;
             _options = options?.Value ?? new EntityChangeOptions();
+        }
+
+        public override InterceptionResult<int> SavingChanges(
+            DbContextEventData eventData,
+            InterceptionResult<int> result)
+        {
+            DispatchHandlersAsync(eventData).GetAwaiter().GetResult();
+            return base.SavingChanges(eventData, result);
         }
 
         public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
@@ -32,12 +41,25 @@ namespace EasyCore.EntityChange.EntityChange
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
+            await DispatchHandlersAsync(eventData);
+            return await base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+
+        private async Task DispatchHandlersAsync(DbContextEventData eventData)
+        {
             var context = eventData.Context
-                ?? throw new InvalidOperationException("DbContext is null in SavingChangesAsync.");
+                ?? throw new InvalidOperationException("DbContext is null in SavingChanges.");
 
             var entries = context.ChangeTracker.Entries()
                 .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
                 .ToList();
+
+            if (entries.Count == 0)
+                return;
+
+            // Options often capture this interceptor as a singleton; resolve handlers per call.
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var services = scope.ServiceProvider;
 
             foreach (var entry in entries)
             {
@@ -46,6 +68,7 @@ namespace EasyCore.EntityChange.EntityChange
                 if (entry.State == EntityState.Added)
                 {
                     await InvokeHandlersAsync(
+                        services,
                         typeof(IEntityAddedChangeHandler<>).MakeGenericType(entityType),
                         nameof(IEntityAddedChangeHandler<object>.OnAddedAsync),
                         new[] { entry.Entity },
@@ -56,6 +79,7 @@ namespace EasyCore.EntityChange.EntityChange
                 if (entry.State == EntityState.Deleted || IsSoftDeleteTransition(entry))
                 {
                     await InvokeHandlersAsync(
+                        services,
                         typeof(IEntityDeletedChangeHandler<>).MakeGenericType(entityType),
                         nameof(IEntityDeletedChangeHandler<object>.OnDeletedAsync),
                         new[] { entry.Entity },
@@ -66,14 +90,13 @@ namespace EasyCore.EntityChange.EntityChange
                 if (entry.State == EntityState.Modified)
                 {
                     await InvokeHandlersAsync(
+                        services,
                         typeof(IEntityUpdatedChangeHandler<>).MakeGenericType(entityType),
                         nameof(IEntityUpdatedChangeHandler<object>.OnUpdatedAsync),
                         new[] { entry.OriginalValues.ToObject(), entry.Entity },
                         "updated");
                 }
             }
-
-            return await base.SavingChangesAsync(eventData, result, cancellationToken);
         }
 
         private static bool IsSoftDeleteTransition(EntityEntry entry)
@@ -85,16 +108,20 @@ namespace EasyCore.EntityChange.EntityChange
             if (prop == null)
                 return false;
 
-            return prop.OriginalValue is false && prop.CurrentValue is true;
+            // Mongo EF / some providers may leave OriginalValue unset; treat non-true as "was active".
+            var currentDeleted = prop.CurrentValue is true;
+            var originalDeleted = prop.OriginalValue is true;
+            return currentDeleted && !originalDeleted;
         }
 
         private async Task InvokeHandlersAsync(
+            IServiceProvider services,
             Type handlerType,
             string methodName,
             object?[] args,
             string operation)
         {
-            var handlers = _serviceProvider.GetServices(handlerType);
+            var handlers = services.GetServices(handlerType);
 
             foreach (var handler in handlers)
             {

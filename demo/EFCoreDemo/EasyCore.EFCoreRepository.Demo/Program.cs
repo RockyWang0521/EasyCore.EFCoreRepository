@@ -18,7 +18,6 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            // Use EasyCore Entity Change (register before AddDbContext so interceptor can resolve)
             builder.Services.EasyCoreEntityChange()
                 .AddHandler<EasyCore.EFCoreRepository.Demo.EntityChange.EntityChange>();
 
@@ -27,13 +26,9 @@ namespace EasyCore.EFCoreRepository.Demo
                 op.UseEasyCoreEntityChange(sp);
             });
 
-            // Use EasyCore EFCore Repository
             builder.Services.EasyCoreEFCoreRepository();
 
-            // Use EasyCore EFCore UnitOfWork (explicit registration)
-            builder.Services.EasyCoreUnitOfWork()
-                .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>()
-                .RegisterSaveChangesFor<IUnitOfWorkTest2, UnitOfWorkTest2>();
+            builder.Services.EasyCoreUnitOfWork();
 
             var app = builder.Build();
 

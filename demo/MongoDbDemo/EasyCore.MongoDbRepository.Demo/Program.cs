@@ -1,7 +1,9 @@
 using EasyCore.Dependencie;
 using EasyCore.EntityChange;
 using EasyCore.MongoDbRepository;
+using Microsoft.EntityFrameworkCore;
 using MongoDbContext.EntityFrameworkCore.EFDbContext;
+using MongoDB.EntityFrameworkCore.Extensions;
 
 namespace EasyCore.MongoDbRepository.Demo
 {
@@ -21,6 +23,9 @@ namespace EasyCore.MongoDbRepository.Demo
 
             builder.Services.AddDbContext<TestDbContext>((sp, op) =>
             {
+                op.UseMongoDB(
+                    "mongodb://admin:123456@localhost:27017/testdb?authSource=admin",
+                    "testmongodb");
                 op.UseEasyCoreEntityChange(sp);
             });
 

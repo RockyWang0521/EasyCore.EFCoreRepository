@@ -1,5 +1,6 @@
-﻿using EasyCore.EFCoreRepository.DataFilter;
+using EasyCore.EFCoreRepository.DataFilter;
 using EasyCore.EFCoreRepository.Demo.DataFilter;
+using EFCore.Entity;
 using EFCore.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,23 +18,26 @@ namespace EasyCore.EFCoreRepository.Demo.Controllers
         [HttpPost]
         public async Task Post()
         {
-            await _repository.InsertAsync(new EFCore.Entity.TestCustomEntity(), true);
+            await _repository.InsertAsync(new TestCustomEntity
+            {
+                Id = Guid.NewGuid(),
+                CreateId = "Test"
+            }, true);
         }
 
         /// <summary>
         /// Can freely add, remove, or modify data filters
         /// </summary>
-        /// <returns></returns>
         [HttpPost("filter")]
-        public async Task Filter()
+        public async Task<List<TestCustomEntity>> Filter()
         {
-            var entityDataFilters = _repository.TestCustomEntityGetDataFilters();
-
-            var entitys = await _repository
-                             .RemoveFilter(typeof(ITenantFilter))
-                             .RemoveFilter(typeof(ISoftDeleteFilter))
-                             .AddFilter(typeof(CustomDataFilter))
-                             .AsQueryable().Where(e => e.CreateId == "Test").ToListAsync();
+            return await _repository
+                .RemoveFilter(typeof(ITenantFilter))
+                .RemoveFilter(typeof(ISoftDeleteFilter))
+                .AddFilter(typeof(CustomDataFilter))
+                .AsQueryable()
+                .Where(e => e.CreateId == "Test")
+                .ToListAsync();
         }
     }
 }

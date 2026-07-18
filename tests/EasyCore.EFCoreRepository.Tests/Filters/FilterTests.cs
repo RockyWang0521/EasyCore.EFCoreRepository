@@ -38,15 +38,19 @@ public class TenantFilterTests
     }
 
     [Fact]
-    public async Task TenantFilter_EmptyTenant_ReturnsNoRows()
+    public async Task TenantFilter_EmptyTenant_MatchesNullTenantRowsOnly()
     {
         await using var sp = TestServiceFactory.Create(tenantId: null);
         var repo = TestServiceFactory.CreateRepo<TenantEntity>(sp);
         var db = sp.GetRequiredService<TestDbContext>();
 
-        db.TenantEntities.Add(new TenantEntity { Id = Guid.NewGuid(), Name = "leak", TenantId = "other" });
+        db.TenantEntities.Add(new TenantEntity { Id = Guid.NewGuid(), Name = "other", TenantId = "other" });
+        db.TenantEntities.Add(new TenantEntity { Id = Guid.NewGuid(), Name = "null-tenant", TenantId = null });
         await db.SaveChangesAsync();
 
-        Assert.Empty(await repo.GetListAsync());
+        var list = await repo.GetListAsync();
+        Assert.Single(list);
+        Assert.Equal("null-tenant", list[0].Name);
+        Assert.Null(list[0].TenantId);
     }
 }

@@ -1,4 +1,4 @@
-﻿# 🏗️ EasyCore.EFCoreRepository
+# 🏗️ EasyCore.EFCoreRepository
 
 [中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.md) | [MongoDb 中文 README](https://gitee.com/wzhy-0521/easy-core.-efcore-repository/blob/master/README.MongoDb.md)
 
@@ -189,8 +189,9 @@ List<TEntity> GetPagedList(int skipCount, int maxResultCount);
 Task<List<TEntity>> GetPagedListAsync(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true, CancellationToken cancellationToken = default);
 List<TEntity> GetPagedList(int skipCount, int maxResultCount, Expression<Func<TEntity, object>> orderBy, bool ascending = true);
 
-// Single entity (GetFirstAsync throws if not found; GetFirst returns null)
+// Single entity (GetFirstAsync throws if not found; GetFirst / GetFirstOrDefaultAsync return null)
 Task<TEntity> GetFirstAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
+Task<TEntity?> GetFirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate, CancellationToken cancellationToken = default);
 TEntity? GetFirst(Expression<Func<TEntity, bool>> predicate);
 ```
 ##### ⚡ Direct Delete Operations

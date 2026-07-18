@@ -16,7 +16,9 @@ namespace EasyCore.EntityChange
         public static EntityChangeBuilder EasyCoreEntityChange(this IServiceCollection services)
         {
             services.AddOptions<EntityChangeOptions>();
-            services.TryAddScoped<EntityChangeInterceptor>();
+            // Singleton: DbContextOptions typically caches the interceptor instance;
+            // handlers are resolved per SaveChanges via IServiceScopeFactory.
+            services.TryAddSingleton<EntityChangeInterceptor>();
 
             return new EntityChangeBuilder(services);
         }
