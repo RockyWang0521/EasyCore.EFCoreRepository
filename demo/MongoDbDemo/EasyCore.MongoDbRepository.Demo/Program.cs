@@ -18,8 +18,7 @@ namespace EasyCore.MongoDbRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.EasyCoreEntityChange()
-                .AddHandler<EasyCore.MongoDbRepository.Demo.EntityChange.EntityChange>();
+            builder.Services.AddEasyCoreEntityChange();
 
             builder.Services.AddDbContext<TestDbContext>((sp, op) =>
             {
@@ -29,7 +28,7 @@ namespace EasyCore.MongoDbRepository.Demo
                 op.UseEasyCoreEntityChange(sp);
             });
 
-            builder.Services.EasyCoreMongoDbRepository();
+            builder.Services.AddEasyCoreMongoDbRepository();
 
             var app = builder.Build();
 

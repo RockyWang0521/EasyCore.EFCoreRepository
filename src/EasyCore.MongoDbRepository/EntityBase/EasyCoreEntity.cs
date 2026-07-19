@@ -1,8 +1,9 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using System.ComponentModel.DataAnnotations;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace EasyCore.MongoDbRepository.EntityBase
 {
-    public class EasyCoreEntity<T> : IEntity, IEntitySoftDelete, IEntityTenant, IEntityCreateTime, IEntityUpdateTime
+    public class EasyCoreEntity<T> : IEntity, IEntityConcurrencyCheck, IEntitySoftDelete, IEntityTenant, IEntityCreateTime, IEntityUpdateTime
     {
 #pragma warning disable CS8618
 
@@ -21,6 +22,12 @@ namespace EasyCore.MongoDbRepository.EntityBase
         /// The soft delete flag of the entity.
         /// </summary>
         public bool IsDeleted { get; set; }
+
+        /// <summary>
+        /// The concurrency stamp of the entity.
+        /// </summary>
+        [ConcurrencyCheck]
+        public string ConcurrencyStamp { get; set; }
 
         /// <summary>
         /// The create time of the entity.

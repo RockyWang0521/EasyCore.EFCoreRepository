@@ -57,7 +57,7 @@ public class SaveChangesInterceptorAsyncTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<UowDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
-        services.EasyCoreUnitOfWork()
+        services.AddEasyCoreUnitOfWork()
             .RegisterSaveChangesFor<IUowService, UowService>();
 
         await using var sp = services.BuildServiceProvider();

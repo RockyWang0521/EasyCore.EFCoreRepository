@@ -23,7 +23,7 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ 使用 EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
+        builder.Services.AddEasyCoreEFCoreRepository();
 
         var app = builder.Build();
 
@@ -269,10 +269,18 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ 使用 EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
-        // 🔄 使用 EasyCore EFCore UnitOfWork（生产环境请显式注册；EnableAssemblyScanning 为可选）
-        builder.Services.EasyCoreUnitOfWork()
-            .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+        builder.Services.AddEasyCoreEFCoreRepository();
+
+        // 🔄 UnitOfWork：默认扫描全部带 [SaveChanges] 的类并套代理（100 个类也不用手写注册）
+        builder.Services.AddEasyCoreUnitOfWork();
+
+        // 可选：关掉扫描，只精准注册
+        // builder.Services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
+        //     .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+
+        // 可选：扫描 + 个别覆盖
+        // builder.Services.AddEasyCoreUnitOfWork()
+        //     .RegisterSaveChangesFor<ISpecialService, SpecialService>();
 
         var app = builder.Build();
 
@@ -363,17 +371,28 @@ EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 ### 1. 📝 Program 注册
 
 ```
-// 先注册 EntityChange，再在 AddDbContext 中注入拦截器（使用 IServiceProvider，禁止 BuildServiceProvider）
-builder.Services.EasyCoreEntityChange()
-    .AddHandler<EntityChange>(); // 生产推荐显式注册；.EnableAssemblyScanning() 为可选
+// 1) 注册 EntityChange（默认扫描全部 Handler）
+builder.Services.AddEasyCoreEntityChange();
 
-builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+// 可选：关掉扫描，只精准注册
+// builder.Services.AddEasyCoreEntityChange(enableAssemblyScanning: false)
+//     .AddHandler<EntityChange>();
+
+// 2) 在每个需要追踪的 AddDbContext 里显式挂拦截器（多 DbContext 就分别写）
+builder.Services.AddDbContext<TestDbContext>((sp, options) =>
 {
-    op.UseEasyCoreEntityChange(sp);
+    options.UseEasyCoreEntityChange(sp);
 });
+// builder.Services.AddDbContext<OtherDbContext>((sp, options) =>
+// {
+//     options.UseSqlServer("...");
+//     options.UseEasyCoreEntityChange(sp); // 需要才挂
+// });
+
+builder.Services.AddEasyCoreEFCoreRepository();
 ```
 
-> 说明：软删除（`IsDeleted` 从 false→true）会按 **Deleted** 派发 handler。Handler 异常默认向上抛出（可用 `Configure(o => o.SuppressHandlerExceptions = true)` 改为吞掉）。
+> 说明：推荐在 `AddDbContext((sp, options) => …)` 里调用 `UseEasyCoreEntityChange(sp)`，多个 DbContext 可按需分别启用。若漏写，与仓储联用时 `AddEasyCoreEFCoreRepository` / `AddEasyCoreMongoDbRepository` 仍会尝试自动挂上。软删除（`IsDeleted` 从 false→true）按 **Deleted** 派发。Handler 异常默认向上抛出（可用 `Configure(o => o.SuppressHandlerExceptions = true)` 改为吞掉）。
 
 ### 2. 🎯 使用实体变更追踪
 

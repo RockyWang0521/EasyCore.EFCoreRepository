@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -13,10 +13,10 @@
     <Description>.NET 8 EasyCore.UnitOfWork — attribute-based unit of work / SaveChanges interceptors for EF Core.</Description>
     <PackageProjectUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageLicenseExpression>MulanPSL-2.0</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AssemblyVersion>8.1.0.0</AssemblyVersion>
     <FileVersion>8.1.0.0</FileVersion>
-    <Version>8.1.0</Version>
+    <Version>8.3.0</Version>
     <OutputType>Library</OutputType>
     <RepositoryUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository.git</RepositoryUrl>
     <IsPackable>true</IsPackable>

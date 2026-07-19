@@ -23,7 +23,7 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ 使用 EasyCore EFCore Repository
-        builder.Services.EasyCoreMongoDbRepository();
+        builder.Services.AddEasyCoreMongoDbRepository();
 
         var app = builder.Build();
 
@@ -260,21 +260,15 @@ EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 ### 1. 📝 Program 注册
 
 ```
-builder.Services.EasyCoreEntityChange()
-    .AddHandler<EntityChange>();
+builder.Services.AddEasyCoreEntityChange();
 
 builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(sp);
+    op.UseMongoDB("mongodb://...", "dbname");
+    op.UseEasyCoreEntityChange(sp); // 每个需要追踪的 DbContext 分别挂
 });
 
-builder.Services.AddDbContext<Test2DbContext>(op =>
-{
-    op.UseEasyCoreEntityChange(sp); // ✨ 使用 EasyCore EFCore 实体变更追踪
-});
-
-// 🔧 启用 EasyCore 实体变更服务
-builder.Services.EasyCoreEntityChange();
+builder.Services.AddEasyCoreMongoDbRepository();
 ```
 
 ### 2. 🎯 使用实体变更追踪

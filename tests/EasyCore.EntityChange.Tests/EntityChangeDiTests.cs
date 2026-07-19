@@ -62,14 +62,12 @@ public class EntityChangeDiTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.EasyCoreEntityChange()
-            .AddHandler<RecordingHandlers>();
 
-        services.AddDbContext<ChangeDbContext>((sp, o) =>
-        {
-            o.UseInMemoryDatabase(Guid.NewGuid().ToString());
-            o.UseEasyCoreEntityChange(sp);
-        });
+        services.AddDbContext<ChangeDbContext>(o =>
+            o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+
+        services.AddEasyCoreEntityChange()
+            .AddHandler<RecordingHandlers>();
 
         return services.BuildServiceProvider();
     }

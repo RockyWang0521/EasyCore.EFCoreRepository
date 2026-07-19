@@ -23,7 +23,7 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ Use EasyCore EFCore Repository
-        builder.Services.EasyCoreMongoDbRepository();
+        builder.Services.AddEasyCoreMongoDbRepository();
 
         var app = builder.Build();
 
@@ -252,21 +252,15 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 
 ### 1. 📝 Program Registration
 ```
-builder.Services.EasyCoreEntityChange()
-    .AddHandler<EntityChange>();
+builder.Services.AddEasyCoreEntityChange();
 
 builder.Services.AddDbContext<TestDbContext>((sp, op) =>
 {
-    op.UseEasyCoreEntityChange(sp);
+    op.UseMongoDB("mongodb://...", "dbname");
+    op.UseEasyCoreEntityChange(sp); // attach per DbContext that needs tracking
 });
 
-builder.Services.AddDbContext<Test2DbContext>(op =>
-{
-    op.UseEasyCoreEntityChange(sp); // ✨ Use EasyCore EFCore Entity Change Tracking
-});
-
-// 🔧 Enable EasyCore Entity Change Service
-builder.Services.EasyCoreEntityChange();
+builder.Services.AddEasyCoreMongoDbRepository();
 ```
 ### 2. 🎯 Using Entity Change Tracking
 ```

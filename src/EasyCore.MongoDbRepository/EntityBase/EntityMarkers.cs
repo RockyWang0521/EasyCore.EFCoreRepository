@@ -38,4 +38,12 @@ namespace EasyCore.MongoDbRepository.EntityBase
     {
         DateTime? UpdateTime { get; set; }
     }
+
+    /// <summary>
+    /// Optimistic concurrency stamp support.
+    /// </summary>
+    public interface IEntityConcurrencyCheck
+    {
+        string ConcurrencyStamp { get; set; }
+    }
 }

@@ -23,7 +23,7 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ Use EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
+        builder.Services.AddEasyCoreEFCoreRepository();
 
         var app = builder.Build();
 
@@ -261,10 +261,17 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ Use EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
-        // 🔄 Use EasyCore UnitOfWork
-        builder.Services.EasyCoreUnitOfWork()
-            .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+        builder.Services.AddEasyCoreEFCoreRepository();
+        // 🔄 UnitOfWork: by default scans all [SaveChanges] types and wraps proxies
+        builder.Services.AddEasyCoreUnitOfWork();
+
+        // Optional: disable scanning, register explicitly only
+        // builder.Services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
+        //     .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+
+        // Optional: scan + override specific services
+        // builder.Services.AddEasyCoreUnitOfWork()
+        //     .RegisterSaveChangesFor<ISpecialService, SpecialService>();
 
         var app = builder.Build();
 
@@ -346,14 +353,28 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 
 ### 1. 📝 Program Registration
 ```
-builder.Services.EasyCoreEntityChange()
-    .AddHandler<EntityChange>();
+// 1) Register EntityChange (scans all handlers by default)
+builder.Services.AddEasyCoreEntityChange();
 
-builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+// Optional: disable scanning, register explicitly only
+// builder.Services.AddEasyCoreEntityChange(enableAssemblyScanning: false)
+//     .AddHandler<EntityChange>();
+
+// 2) Attach the interceptor on each DbContext that needs tracking
+builder.Services.AddDbContext<TestDbContext>((sp, options) =>
 {
-    op.UseEasyCoreEntityChange(sp);
+    options.UseEasyCoreEntityChange(sp);
 });
+// builder.Services.AddDbContext<OtherDbContext>((sp, options) =>
+// {
+//     options.UseSqlServer("...");
+//     options.UseEasyCoreEntityChange(sp); // only when needed
+// });
+
+builder.Services.AddEasyCoreEFCoreRepository();
 ```
+
+> Note: Prefer `UseEasyCoreEntityChange(sp)` inside `AddDbContext((sp, options) => …)` so each context opts in. If omitted, repository packages still try to auto-attach. Soft delete (`IsDeleted` false→true) dispatches as **Deleted**. Handler exceptions propagate by default (`Configure(o => o.SuppressHandlerExceptions = true)` to swallow).
 ### 2. 🎯 Using Entity Change Tracking
 ```
 public class EntityChange : 

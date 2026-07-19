@@ -1,9 +1,9 @@
 using EasyCore.Dependencie;
 using EasyCore.EntityChange;
 using EasyCore.EFCoreRepository;
-using EasyCore.EFCoreRepository.Demo.UnitOfWork;
 using EasyCore.UnitOfWork;
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
+using Microsoft.EntityFrameworkCore;
 
 namespace EasyCore.EFCoreRepository.Demo
 {
@@ -18,17 +18,22 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.EasyCoreEntityChange()
-                .AddHandler<EasyCore.EFCoreRepository.Demo.EntityChange.EntityChange>();
+            // 1) 注册 EntityChange（默认扫描全部 Handler）
+            builder.Services.AddEasyCoreEntityChange();
 
-            builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+            // 2) 在每个 AddDbContext 里显式挂拦截器（多个 DbContext 就写多次）
+            builder.Services.AddDbContext<TestDbContext>((sp, options) =>
             {
-                op.UseEasyCoreEntityChange(sp);
+                options.UseEasyCoreEntityChange(sp);
             });
+            // builder.Services.AddDbContext<OtherDbContext>((sp, options) =>
+            // {
+            //     options.UseSqlServer("...");
+            //     options.UseEasyCoreEntityChange(sp); // 需要变更追踪的才挂
+            // });
 
-            builder.Services.EasyCoreEFCoreRepository();
-
-            builder.Services.EasyCoreUnitOfWork();
+            builder.Services.AddEasyCoreEFCoreRepository();
+            builder.Services.AddEasyCoreUnitOfWork();
 
             var app = builder.Build();
 
