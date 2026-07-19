@@ -4,6 +4,7 @@ using EasyCore.EFCoreRepository;
 using EasyCore.EFCoreRepository.Demo.UnitOfWork;
 using EasyCore.UnitOfWork;
 using EFCoreDbContext.EntityFrameworkCore.EFDbContext;
+using Microsoft.EntityFrameworkCore;
 
 namespace EasyCore.EFCoreRepository.Demo
 {
@@ -18,17 +19,13 @@ namespace EasyCore.EFCoreRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.EasyCoreEntityChange()
-                .AddHandler<EasyCore.EFCoreRepository.Demo.EntityChange.EntityChange>();
+            builder.Services.AddEasyCoreEntityChange();
 
-            builder.Services.AddDbContext<TestDbContext>((sp, op) =>
-            {
-                op.UseEasyCoreEntityChange(sp);
-            });
+            builder.Services.AddDbContext<TestDbContext>();
 
-            builder.Services.EasyCoreEFCoreRepository();
+            builder.Services.AddEasyCoreEFCoreRepository();
 
-            builder.Services.EasyCoreUnitOfWork();
+            builder.Services.AddEasyCoreUnitOfWork();
 
             var app = builder.Build();
 

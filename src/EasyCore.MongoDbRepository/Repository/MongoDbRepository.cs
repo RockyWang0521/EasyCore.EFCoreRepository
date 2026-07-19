@@ -503,6 +503,8 @@ namespace EasyCore.MongoDbRepository.Repository
 
             var savedEntity = dbContext.Set<TEntity>().Add(entity).Entity;
 
+            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+
             if (savedEntity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
             if (savedEntity is IEntitySoftDelete entitySoft) entitySoft.IsDeleted = false;
@@ -521,6 +523,8 @@ namespace EasyCore.MongoDbRepository.Repository
             TDbContext dbContext = GetDbContext();
 
             var savedEntity = (await dbContext.Set<TEntity>().AddAsync(entity)).Entity;
+
+            if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
 
             if (savedEntity is IEntityTenant entityTenant) ApplyTenantId(entityTenant);
 
@@ -549,6 +553,8 @@ namespace EasyCore.MongoDbRepository.Repository
             {
                 if (entity is IEntityTenant tenant) ApplyTenantId(tenant);
 
+                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
+
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
                 if (entity is IEntityCreateTime ct) ct.CreateTime = now;
@@ -574,6 +580,8 @@ namespace EasyCore.MongoDbRepository.Repository
             foreach (var entity in entities)
             {
                 if (entity is IEntityTenant tenant) ApplyTenantId(tenant);
+
+                if (entity is IEntityConcurrencyCheck concurrency) concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
 
                 if (entity is IEntitySoftDelete soft) soft.IsDeleted = false;
 
@@ -604,6 +612,8 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
+                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+
                 if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
@@ -629,6 +639,8 @@ namespace EasyCore.MongoDbRepository.Repository
 
             if (dbContext.Entry(entity).State == EntityState.Modified)
             {
+                if (entity is IEntityConcurrencyCheck eruptEntity) eruptEntity.ConcurrencyStamp = Guid.NewGuid().ToString();
+
                 if (entity is IEntityUpdateTime entityUpdateTime) entityUpdateTime.UpdateTime = DateTime.Now;
             }
 
@@ -731,6 +743,9 @@ namespace EasyCore.MongoDbRepository.Repository
                 dbContext.Set<TEntity>().Attach(entity);
                 dbContext.Update(entity);
             }
+
+            if (entity is IEntityConcurrencyCheck concurrency)
+                concurrency.ConcurrencyStamp = Guid.NewGuid().ToString();
 
             if (entity is IEntityTenant entityTenant)
                 ApplyTenantId(entityTenant);

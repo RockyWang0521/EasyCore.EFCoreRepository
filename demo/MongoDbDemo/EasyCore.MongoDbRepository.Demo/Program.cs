@@ -18,18 +18,16 @@ namespace EasyCore.MongoDbRepository.Demo
             builder.Services.AddSwaggerGen();
             builder.Services.EasyCoreDependencie();
 
-            builder.Services.EasyCoreEntityChange()
-                .AddHandler<EasyCore.MongoDbRepository.Demo.EntityChange.EntityChange>();
+            builder.Services.AddEasyCoreEntityChange();
 
-            builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+            builder.Services.AddDbContext<TestDbContext>(op =>
             {
                 op.UseMongoDB(
                     "mongodb://admin:123456@localhost:27017/testdb?authSource=admin",
                     "testmongodb");
-                op.UseEasyCoreEntityChange(sp);
             });
 
-            builder.Services.EasyCoreMongoDbRepository();
+            builder.Services.AddEasyCoreMongoDbRepository();
 
             var app = builder.Build();
 

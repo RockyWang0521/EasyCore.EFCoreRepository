@@ -15,7 +15,7 @@ internal static class TestServiceFactory
 
         services.AddDbContext<TestDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddSingleton<ITenantProvider>(new FixedTenantProvider(tenantId));
-        services.EasyCoreEFCoreRepository();
+        services.AddEasyCoreEFCoreRepository();
         configure?.Invoke(services);
 
         return services.BuildServiceProvider();

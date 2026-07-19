@@ -23,7 +23,7 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ Use EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
+        builder.Services.AddEasyCoreEFCoreRepository();
 
         var app = builder.Build();
 
@@ -261,10 +261,17 @@ public class Program
         builder.Services.AddDbContext<TestDbContext>();
 
         // ✨ Use EasyCore EFCore Repository
-        builder.Services.EasyCoreEFCoreRepository();
-        // 🔄 Use EasyCore UnitOfWork
-        builder.Services.EasyCoreUnitOfWork()
-            .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+        builder.Services.AddEasyCoreEFCoreRepository();
+        // 🔄 UnitOfWork: by default scans all [SaveChanges] types and wraps proxies
+        builder.Services.AddEasyCoreUnitOfWork();
+
+        // Optional: disable scanning, register explicitly only
+        // builder.Services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
+        //     .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
+
+        // Optional: scan + override specific services
+        // builder.Services.AddEasyCoreUnitOfWork()
+        //     .RegisterSaveChangesFor<ISpecialService, SpecialService>();
 
         var app = builder.Build();
 
@@ -346,13 +353,14 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 
 ### 1. 📝 Program Registration
 ```
-builder.Services.EasyCoreEntityChange()
+builder.Services.AddEasyCoreEntityChange()
     .AddHandler<EntityChange>();
 
-builder.Services.AddDbContext<TestDbContext>((sp, op) =>
-{
-    op.UseEasyCoreEntityChange(sp);
-});
+builder.Services.AddDbContext<TestDbContext>();
+
+// With the repository package, AddEasyCoreEFCoreRepository / AddEasyCoreMongoDbRepository
+// attaches the interceptor automatically — no UseEasyCoreEntityChange needed.
+builder.Services.AddEasyCoreEFCoreRepository();
 ```
 ### 2. 🎯 Using Entity Change Tracking
 ```

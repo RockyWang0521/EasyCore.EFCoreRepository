@@ -1,4 +1,4 @@
-﻿using EasyCore.EntityChange.EntityChange;
+using EasyCore.EntityChange.EntityChange;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -9,24 +9,36 @@ namespace EasyCore.EntityChange
     public static class DataBaseEntityChange
     {
         /// <summary>
-        /// Registers entity-change infrastructure. Assembly scanning is opt-in via
-        /// <see cref="EntityChangeBuilder.EnableAssemblyScanning"/>.
-        /// Prefer <see cref="EntityChangeBuilder.AddHandler{THandler}"/> for production.
+        /// Registers entity-change infrastructure. The SaveChanges interceptor is attached automatically to
+        /// registered <see cref="DbContext"/> instances (call after <c>AddDbContext</c>, or let
+        /// <c>AddEasyCoreEFCoreRepository</c> / <c>AddEasyCoreMongoDbRepository</c> attach when used).
+        /// Prefer <see cref="EntityChangeBuilder.AddHandler{THandler}"/> for production handlers.
         /// </summary>
-        public static EntityChangeBuilder EasyCoreEntityChange(this IServiceCollection services)
+        public static EntityChangeBuilder AddEasyCoreEntityChange(this IServiceCollection services)
         {
+            ArgumentNullException.ThrowIfNull(services);
+
             services.AddOptions<EntityChangeOptions>();
             // Singleton: DbContextOptions typically caches the interceptor instance;
             // handlers are resolved per SaveChanges via IServiceScopeFactory.
             services.TryAddSingleton<EntityChangeInterceptor>();
 
+            EntityChangeDbContextAttachment.AttachAll(services);
             return new EntityChangeBuilder(services);
         }
 
         /// <summary>
-        /// Adds the entity-change interceptor using the application's <see cref="IServiceProvider"/>.
-        /// Call from AddDbContext: <c>(sp, opts) => opts.UseEasyCoreEntityChange(sp)</c>.
+        /// Attaches the entity-change interceptor to every <see cref="DbContextOptions{TContext}"/>
+        /// already registered in <paramref name="services"/>. Invoked automatically by repository packages.
         /// </summary>
+        public static void AttachEntityChangeToRegisteredDbContexts(IServiceCollection services)
+            => EntityChangeDbContextAttachment.AttachAll(services);
+
+        /// <summary>
+        /// Explicitly adds the entity-change interceptor to a <see cref="DbContextOptionsBuilder"/>.
+        /// Prefer <see cref="AddEasyCoreEntityChange"/> which attaches automatically.
+        /// </summary>
+        [Obsolete("No longer required. AddEasyCoreEntityChange() attaches the interceptor automatically.")]
         public static void UseEasyCoreEntityChange(this DbContextOptionsBuilder builder, IServiceProvider serviceProvider)
         {
             ArgumentNullException.ThrowIfNull(builder);
@@ -51,6 +63,7 @@ namespace EasyCore.EntityChange
         public EntityChangeBuilder Configure(Action<EntityChangeOptions> configure)
         {
             _services.Configure(configure);
+            EntityChangeDbContextAttachment.AttachAll(_services);
             return this;
         }
 
@@ -60,6 +73,18 @@ namespace EasyCore.EntityChange
         public EntityChangeBuilder AddHandler<THandler>() where THandler : class
         {
             RegisterHandlerType(typeof(THandler));
+            EntityChangeDbContextAttachment.AttachAll(_services);
+            return this;
+        }
+
+        /// <summary>
+        /// Attaches the interceptor to DbContexts registered so far.
+        /// Call after <c>AddDbContext</c> when <see cref="DataBaseEntityChange.AddEasyCoreEntityChange"/>
+        /// was invoked before the context registration.
+        /// </summary>
+        public EntityChangeBuilder AttachToDbContexts()
+        {
+            EntityChangeDbContextAttachment.AttachAll(_services);
             return this;
         }
 
@@ -109,6 +134,7 @@ namespace EasyCore.EntityChange
                 }
             }
 
+            EntityChangeDbContextAttachment.AttachAll(_services);
             return this;
         }
 
