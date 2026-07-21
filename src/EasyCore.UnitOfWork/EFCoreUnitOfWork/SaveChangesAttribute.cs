@@ -1,33 +1,65 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace EasyCore.UnitOfWork
+namespace EasyCore.UnitOfWork;
+
+/// <summary>
+/// Marks a class, interface, method, or MVC controller / action to persist EF Core changes after the call.
+/// Services use Castle DynamicProxy; Dynamic API / Controllers use <see cref="IFilterFactory"/>.
+/// Composes with other packages' <c>IAsyncInterceptor</c> registrations via DI.
+/// </summary>
+[AttributeUsage(
+    AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Interface,
+    Inherited = true,
+    AllowMultiple = false)]
+public sealed class SaveChangesAttribute : Attribute, IFilterFactory, IOrderedFilter
 {
     /// <summary>
-    /// Unit of Work SaveChanges Feature Tag
+    /// MVC / interceptor stack order. Lower = outer. Default: <c>200</c> (typically inside resilience / cache).
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = true)]
-    public class SaveChangesAttribute : Attribute
+    public int Order { get; set; } = 200;
+
+    /// <summary>
+    /// When <c>true</c>, wraps the call in an explicit database transaction.
+    /// </summary>
+    public bool IsTransaction { get; set; }
+
+    /// <summary>
+    /// Concrete <see cref="DbContext"/> type resolved from DI.
+    /// </summary>
+    public Type DbContextType { get; }
+
+    /// <summary>
+    /// Creates a SaveChanges marker for the given <see cref="DbContext"/> type.
+    /// </summary>
+    public SaveChangesAttribute(Type dbContextType)
     {
-        public bool IsTransaction { get; set; } = false;
+        if (dbContextType is null || !typeof(DbContext).IsAssignableFrom(dbContextType))
+            throw new ArgumentException("Provided type must be a DbContext.", nameof(dbContextType));
 
-        public Type DbContextType { get; }
+        DbContextType = dbContextType;
+    }
 
-        public SaveChangesAttribute(Type dbContextType)
-        {
-            if (!typeof(DbContext).IsAssignableFrom(dbContextType))
-                throw new ArgumentException("Provided type must be a DbContext.", nameof(dbContextType));
+    /// <summary>
+    /// Creates a SaveChanges marker with an optional explicit transaction.
+    /// </summary>
+    public SaveChangesAttribute(bool isTransaction, Type dbContextType)
+        : this(dbContextType)
+    {
+        IsTransaction = isTransaction;
+    }
 
-            DbContextType = dbContextType;
-        }
+    /// <inheritdoc />
+    bool IFilterFactory.IsReusable => false;
 
-        public SaveChangesAttribute(bool isTransaction, Type dbContextType)
-        {
-            if (!typeof(DbContext).IsAssignableFrom(dbContextType))
-                throw new ArgumentException("Provided type must be a DbContext.", nameof(dbContextType));
+    /// <inheritdoc />
+    int IOrderedFilter.Order => Order;
 
-            DbContextType = dbContextType;
-
-            IsTransaction = isTransaction;
-        }
+    /// <inheritdoc />
+    public IFilterMetadata CreateInstance(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+        return ActivatorUtilities.CreateInstance<SaveChangesActionFilter>(serviceProvider, this);
     }
 }

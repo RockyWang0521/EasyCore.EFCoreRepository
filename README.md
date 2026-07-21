@@ -251,7 +251,12 @@ _repository
 
 ## 🎯 工作单元模式
 
-EasyCore.UnitOfWork 提供了 SaveChangesAttribute 特性，让数据持久化变得简单高效！✨
+EasyCore.UnitOfWork 提供了 `[SaveChanges]` 特性，支持 **接口 / 类 / 方法 / 动态 API / Controller**：
+
+- **服务层**：Castle `IAsyncInterceptor`（与 Polly / Redis 等通过 DI 堆叠）
+- **API 层**：`IFilterFactory` + 接口特性 Convention（EasyCoreAppService / Controller）
+
+`ControllerBase`（含 Dynamic API AppService）走 MVC Filter，不会再套 Castle 代理。
 
 ### 1. 📝 Program 注册
 

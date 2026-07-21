@@ -244,7 +244,12 @@ _repository
 ```
 # 🔄 EasyCore.UnitOfWork
 ## 🎯 Unit of Work Pattern
-EasyCore.UnitOfWork provides the SaveChangesAttribute feature, making data persistence simple and efficient! ✨
+EasyCore.UnitOfWork provides `[SaveChanges]` on **interface / class / method / Dynamic API / Controller**:
+
+- **Services**: Castle `IAsyncInterceptor` (stacks with Polly / Redis via DI)
+- **APIs**: `IFilterFactory` + interface-attribute convention (EasyCoreAppService / Controller)
+
+`ControllerBase` (including Dynamic API AppServices) uses the MVC Filter path — no Castle proxy.
 
 ### 1. 📝 Program Registration
 ```

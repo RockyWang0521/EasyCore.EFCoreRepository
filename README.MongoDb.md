@@ -262,7 +262,7 @@ EasyCore.EntityChange 提供了强大的实体变更追踪能力！🕵️
 ```
 builder.Services.AddEasyCoreEntityChange();
 
-builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+builder.Services.AddDbContext<TestDbContext>(op =>
 {
     op.UseMongoDB("mongodb://...", "dbname");
     op.UseEasyCoreEntityChange(sp); // 每个需要追踪的 DbContext 分别挂
