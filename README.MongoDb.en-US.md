@@ -254,7 +254,7 @@ EasyCore.EFCoreEntityChange provides powerful entity change tracking capabilitie
 ```
 builder.Services.AddEasyCoreEntityChange();
 
-builder.Services.AddDbContext<TestDbContext>((sp, op) =>
+builder.Services.AddDbContext<TestDbContext>(op =>
 {
     op.UseMongoDB("mongodb://...", "dbname");
     op.UseEasyCoreEntityChange(sp); // attach per DbContext that needs tracking
