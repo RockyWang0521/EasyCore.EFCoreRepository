@@ -244,12 +244,14 @@ _repository
 ```
 # 🔄 EasyCore.UnitOfWork
 ## 🎯 Unit of Work Pattern
-EasyCore.UnitOfWork provides `[SaveChanges]` on **interface / class / method / Dynamic API / Controller**:
+EasyCore.UnitOfWork provides `[SaveChanges]` on **interface / class / method / Dynamic API / Controller / event handlers**:
 
-- **Services**: Castle `IAsyncInterceptor` (stacks with Polly / Redis via DI)
-- **APIs**: `IFilterFactory` + interface-attribute convention (EasyCoreAppService / Controller)
+- **Services / handlers**: AspectInjector **compile-time weave** (direct calls, DI, reflection / EventBus `HandleAsync`)
+- **APIs**: `IFilterFactory` + interface-attribute convention; weave no-ops on `ControllerBase` to avoid double save
 
-`ControllerBase` (including Dynamic API AppServices) uses the MVC Filter path — no Castle proxy.
+Put the attribute on the **implementation** for non-MVC paths. Referencing this package brings AspectInjector.
+
+`ControllerBase` (including Dynamic API AppServices) uses the MVC Filter path.
 
 ### 1. 📝 Program Registration
 ```
@@ -267,16 +269,10 @@ public class Program
 
         // ✨ Use EasyCore EFCore Repository
         builder.Services.AddEasyCoreEFCoreRepository();
-        // 🔄 UnitOfWork: by default scans all [SaveChanges] types and wraps proxies
+        // 🔄 UnitOfWork: ambient DI + MVC Filter (no Castle proxies)
         builder.Services.AddEasyCoreUnitOfWork();
 
-        // Optional: disable scanning, register explicitly only
-        // builder.Services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
-        //     .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
-
-        // Optional: scan + override specific services
-        // builder.Services.AddEasyCoreUnitOfWork()
-        //     .RegisterSaveChangesFor<ISpecialService, SpecialService>();
+        // RegisterSaveChangesFor / assembly scanning are obsolete (weaving is compile-time)
 
         var app = builder.Build();
 

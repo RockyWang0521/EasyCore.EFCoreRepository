@@ -1,4 +1,5 @@
 using System.Reflection;
+using EasyCore.Ambient;
 using EasyCore.UnitOfWork;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -20,6 +21,8 @@ public class IfaceUowService : IIfaceUowService
 
     public IfaceUowService(UowDbContext db) => _db = db;
 
+    // Weave requires the attribute on the implementation for non-MVC call paths.
+    [SaveChanges(typeof(UowDbContext))]
     public Task InsertAsync()
     {
         _db.Entities.Add(new UowEntity { Id = Guid.NewGuid(), Name = "iface" });
@@ -33,29 +36,39 @@ public class SaveChangesAttributeLocatorTests
     public void Find_Resolves_Attribute_On_Interface_Method()
     {
         var method = typeof(IfaceUowService).GetMethod(nameof(IfaceUowService.InsertAsync))!;
+        // Prefer method-level on impl when present.
         var attr = SaveChangesAttributeLocator.Find(typeof(IfaceUowService), method);
         Assert.NotNull(attr);
         Assert.Equal(typeof(UowDbContext), attr!.DbContextType);
     }
 
     [Fact]
-    public async Task Interceptor_Honors_Interface_Method_Attribute()
+    public async Task Weave_Honors_Implementation_Method_Attribute()
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<UowDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
-        services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
-            .RegisterSaveChangesFor<IIfaceUowService, IfaceUowService>();
+        services.AddEasyCoreUnitOfWork();
+        services.AddTransient<IIfaceUowService, IfaceUowService>();
 
         await using var sp = services.BuildServiceProvider();
+        EasyCoreSharedAmbient.SetRoot(sp);
         using var scope = sp.CreateScope();
-        var svc = scope.ServiceProvider.GetRequiredService<IIfaceUowService>();
-        var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
+        EasyCoreSharedAmbient.SetCurrent(scope.ServiceProvider);
+        try
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<IIfaceUowService>();
+            var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
 
-        await svc.InsertAsync();
+            await svc.InsertAsync();
 
-        Assert.True(db.SaveChangesAsyncCallCount >= 1);
-        Assert.Single(await db.Entities.ToListAsync());
+            Assert.True(db.SaveChangesAsyncCallCount >= 1);
+            Assert.Single(await db.Entities.ToListAsync());
+        }
+        finally
+        {
+            EasyCoreSharedAmbient.ClearCurrent();
+        }
     }
 }
 
@@ -98,7 +111,7 @@ public class SaveChangesDiRegistrationTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
-        services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false);
+        services.AddEasyCoreUnitOfWork();
 
         Assert.Contains(
             services,

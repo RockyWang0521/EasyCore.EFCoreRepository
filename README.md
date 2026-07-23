@@ -251,12 +251,14 @@ _repository
 
 ## 🎯 工作单元模式
 
-EasyCore.UnitOfWork 提供了 `[SaveChanges]` 特性，支持 **接口 / 类 / 方法 / 动态 API / Controller**：
+EasyCore.UnitOfWork 提供了 `[SaveChanges]` 特性，支持 **接口 / 类 / 方法 / 动态 API / Controller / 事件处理器**：
 
-- **服务层**：Castle `IAsyncInterceptor`（与 Polly / Redis 等通过 DI 堆叠）
-- **API 层**：`IFilterFactory` + 接口特性 Convention（EasyCoreAppService / Controller）
+- **服务 / 事件处理器**：AspectInjector **编译期织入**（直接调用、DI、反射 / EventBus `HandleAsync` 均生效）
+- **API 层**：`IFilterFactory` + 接口特性 Convention（EasyCoreAppService / Controller）；Controller 上织入自动跳过，避免双写
 
-`ControllerBase`（含 Dynamic API AppService）走 MVC Filter，不会再套 Castle 代理。
+非 MVC 场景请把特性标在**实现类/方法**上。引用本包会带入 AspectInjector。
+
+`ControllerBase`（含 Dynamic API AppService）走 MVC Filter 路径。
 
 ### 1. 📝 Program 注册
 
@@ -276,16 +278,10 @@ public class Program
         // ✨ 使用 EasyCore EFCore Repository
         builder.Services.AddEasyCoreEFCoreRepository();
 
-        // 🔄 UnitOfWork：默认扫描全部带 [SaveChanges] 的类并套代理（100 个类也不用手写注册）
+        // 🔄 UnitOfWork：注册 ambient DI + MVC Filter（无需 Castle 代理）
         builder.Services.AddEasyCoreUnitOfWork();
 
-        // 可选：关掉扫描，只精准注册
-        // builder.Services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false)
-        //     .RegisterSaveChangesFor<IUnitOfWorkTest, UnitOfWorkTest>();
-
-        // 可选：扫描 + 个别覆盖
-        // builder.Services.AddEasyCoreUnitOfWork()
-        //     .RegisterSaveChangesFor<ISpecialService, SpecialService>();
+        // RegisterSaveChangesFor / 程序集扫描已废弃（织入在编译期完成）
 
         var app = builder.Build();
 
