@@ -1,8 +1,6 @@
-using EasyCore.Ambient;
 using EasyCore.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace EasyCore.UnitOfWork.Tests;
 
@@ -48,7 +46,9 @@ public class UowService : IUowService
     }
 }
 
-/// <summary>Simulates IDistributedEventHandler-style reflection invoke.</summary>
+/// <summary>
+/// Class-only proxy sample: HandleAsync must be virtual for Castle to intercept.
+/// </summary>
 public class UowEventHandler
 {
     private readonly UowDbContext _db;
@@ -56,74 +56,57 @@ public class UowEventHandler
     public UowEventHandler(UowDbContext db) => _db = db;
 
     [SaveChanges(typeof(UowDbContext))]
-    public Task HandleAsync(string payload)
+    public virtual Task HandleAsync(string payload)
     {
         _db.Entities.Add(new UowEntity { Id = Guid.NewGuid(), Name = payload });
         return Task.CompletedTask;
     }
 }
 
-public class SaveChangesWeaveTests
+public class SaveChangesProxyTests
 {
     private static ServiceProvider BuildProvider(Action<IServiceCollection>? configure = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddDbContext<UowDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
-        services.AddEasyCoreUnitOfWork();
+        // Register first, then UnitOfWork ApplyProxies.
         services.AddTransient<IUowService, UowService>();
         services.AddTransient<UowService>();
         services.AddTransient<UowEventHandler>();
+        services.AddEasyCoreUnitOfWork();
         configure?.Invoke(services);
         return services.BuildServiceProvider();
     }
 
     [Fact]
-    public async Task Weave_CallsSaveChangesAsync_OnDirectCall()
+    public async Task Proxy_CallsSaveChangesAsync_OnDirectCall()
     {
         await using var sp = BuildProvider();
-        EasyCoreSharedAmbient.SetRoot(sp);
         using var scope = sp.CreateScope();
-        EasyCoreSharedAmbient.SetCurrent(scope.ServiceProvider);
-        try
-        {
-            var svc = scope.ServiceProvider.GetRequiredService<IUowService>();
-            var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
+        var svc = scope.ServiceProvider.GetRequiredService<IUowService>();
+        var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
 
-            await svc.InsertAsync();
+        await svc.InsertAsync();
 
-            Assert.True(db.SaveChangesAsyncCallCount >= 1);
-            Assert.Single(await db.Entities.ToListAsync());
-        }
-        finally
-        {
-            EasyCoreSharedAmbient.ClearCurrent();
-        }
+        Assert.True(db.SaveChangesAsyncCallCount >= 1);
+        Assert.Single(await db.Entities.ToListAsync());
     }
 
     [Fact]
-    public async Task Weave_CallsSaveChangesAsync_OnReflectionInvoke_HandleAsync()
+    public async Task Proxy_CallsSaveChangesAsync_OnReflectionInvoke_HandleAsync()
     {
         await using var sp = BuildProvider();
-        EasyCoreSharedAmbient.SetRoot(sp);
         using var scope = sp.CreateScope();
-        EasyCoreSharedAmbient.SetCurrent(scope.ServiceProvider);
-        try
-        {
-            var handler = scope.ServiceProvider.GetRequiredService<UowEventHandler>();
-            var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
+        var handler = scope.ServiceProvider.GetRequiredService<UowEventHandler>();
+        var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
 
-            var method = handler.GetType().GetMethod(nameof(UowEventHandler.HandleAsync))!;
-            var task = (Task)method.Invoke(handler, new object[] { "evt" })!;
-            await task;
+        var method = handler.GetType().GetMethod(nameof(UowEventHandler.HandleAsync))!;
+        var task = (Task)method.Invoke(handler, new object[] { "evt" })!;
+        await task;
 
-            Assert.True(db.SaveChangesAsyncCallCount >= 1);
-            Assert.Single(await db.Entities.ToListAsync());
-            Assert.Equal("evt", (await db.Entities.SingleAsync()).Name);
-        }
-        finally
-        {
-            EasyCoreSharedAmbient.ClearCurrent();
-        }
+        Assert.True(db.SaveChangesAsyncCallCount >= 1);
+        Assert.Single(await db.Entities.ToListAsync());
+        Assert.Equal("evt", (await db.Entities.SingleAsync()).Name);
     }
 }

@@ -253,10 +253,10 @@ _repository
 
 EasyCore.UnitOfWork 提供了 `[SaveChanges]` 特性，支持 **接口 / 类 / 方法 / 动态 API / Controller / 事件处理器**：
 
-- **服务 / 事件处理器**：AspectInjector **编译期织入**（直接调用、DI、反射 / EventBus `HandleAsync` 均生效）
-- **API 层**：`IFilterFactory` + 接口特性 Convention（EasyCoreAppService / Controller）；Controller 上织入自动跳过，避免双写
+- **服务 / 事件处理器**：Castle DynamicProxy（经 DI 接口代理调用生效）
+- **API 层**：`IFilterFactory` + 接口特性 Convention（EasyCoreAppService / Controller）；Controller 不走 Castle 代理，避免双写
 
-非 MVC 场景请把特性标在**实现类/方法**上。引用本包会带入 AspectInjector。
+非 MVC 场景请把特性标在**实现类/方法**上，并通过接口解析服务。本包使用 Castle.Core.AsyncInterceptor。
 
 `ControllerBase`（含 Dynamic API AppService）走 MVC Filter 路径。
 
@@ -278,7 +278,7 @@ public class Program
         // ✨ 使用 EasyCore EFCore Repository
         builder.Services.AddEasyCoreEFCoreRepository();
 
-        // 🔄 UnitOfWork：注册 ambient DI + MVC Filter（无需 Castle 代理）
+        // 🔄 UnitOfWork：Castle DynamicProxy + MVC Filter
         builder.Services.AddEasyCoreUnitOfWork();
 
         // RegisterSaveChangesFor / 程序集扫描已废弃（织入在编译期完成）

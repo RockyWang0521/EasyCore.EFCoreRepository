@@ -10,16 +10,18 @@
     <IncludeSymbols>False</IncludeSymbols>
     <RepositoryType>git</RepositoryType>
     <Authors>WZHY</Authors>
-    <Description>.NET 8 EasyCore.UnitOfWork — [SaveChanges] on interface/class/method/API via AspectInjector weave + MVC Filter (Dynamic API).</Description>
+    <Description>.NET 8 EasyCore.UnitOfWork — [SaveChanges] on interface/class/method/API via Castle DynamicProxy + MVC Filter (Dynamic API).</Description>
     <PackageProjectUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository</PackageProjectUrl>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <AssemblyVersion>8.1.0.0</AssemblyVersion>
     <FileVersion>8.1.0.0</FileVersion>
-    <Version>8.3.2</Version>
+    <Version>8.3.3</Version>
     <OutputType>Library</OutputType>
     <RepositoryUrl>https://github.com/RockyWang0521/EasyCore.EFCoreRepository.git</RepositoryUrl>
     <IsPackable>true</IsPackable>
+    <NoWarn>$(NoWarn);NU5100;NU5129</NoWarn>
+    <PackageTags>unitofwork;efcore;savechanges;castle;dynamicproxy;easycore</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,11 +40,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AspectInjector" Version="2.8.2" />
+    <PackageReference Include="Castle.Core.AsyncInterceptor" Version="2.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
-    <ProjectReference Include="..\..\..\EasyCore.Ambient\src\EasyCore.Ambient\EasyCore.Ambient.csproj" />
   </ItemGroup>
 
   <ItemGroup>

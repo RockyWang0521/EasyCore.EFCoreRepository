@@ -1,4 +1,3 @@
-using AspectInjector.Broker;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,14 +6,13 @@ namespace EasyCore.UnitOfWork;
 
 /// <summary>
 /// Marks a class, interface, method, or MVC controller / action to persist EF Core changes after the call.
-/// Non-controller methods are woven at compile time via AspectInjector; Dynamic API / Controllers use
-/// <see cref="IFilterFactory"/> (aspect no-ops on <c>ControllerBase</c> to avoid double save).
+/// Non-controller methods are wrapped via Castle DynamicProxy; Dynamic API / Controllers use
+/// <see cref="IFilterFactory"/> (interceptor skips <c>ControllerBase</c> to avoid double save).
 /// </summary>
 [AttributeUsage(
     AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Interface,
     Inherited = true,
     AllowMultiple = false)]
-[Injection(typeof(SaveChangesAspect))]
 public sealed class SaveChangesAttribute : Attribute, IFilterFactory, IOrderedFilter
 {
     /// <summary>

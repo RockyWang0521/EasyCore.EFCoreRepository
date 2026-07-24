@@ -246,10 +246,10 @@ _repository
 ## 🎯 Unit of Work Pattern
 EasyCore.UnitOfWork provides `[SaveChanges]` on **interface / class / method / Dynamic API / Controller / event handlers**:
 
-- **Services / handlers**: AspectInjector **compile-time weave** (direct calls, DI, reflection / EventBus `HandleAsync`)
-- **APIs**: `IFilterFactory` + interface-attribute convention; weave no-ops on `ControllerBase` to avoid double save
+- **Services / handlers**: Castle DynamicProxy (via DI interface proxies)
+- **APIs**: `IFilterFactory` + interface-attribute convention; controllers skip Castle proxies to avoid double save
 
-Put the attribute on the **implementation** for non-MVC paths. Referencing this package brings AspectInjector.
+Put the attribute on the **implementation** for non-MVC paths and resolve via interfaces. This package uses Castle.Core.AsyncInterceptor.
 
 `ControllerBase` (including Dynamic API AppServices) uses the MVC Filter path.
 
@@ -269,7 +269,7 @@ public class Program
 
         // ✨ Use EasyCore EFCore Repository
         builder.Services.AddEasyCoreEFCoreRepository();
-        // 🔄 UnitOfWork: ambient DI + MVC Filter (no Castle proxies)
+        // 🔄 UnitOfWork: Castle DynamicProxy + MVC Filter
         builder.Services.AddEasyCoreUnitOfWork();
 
         // RegisterSaveChangesFor / assembly scanning are obsolete (weaving is compile-time)

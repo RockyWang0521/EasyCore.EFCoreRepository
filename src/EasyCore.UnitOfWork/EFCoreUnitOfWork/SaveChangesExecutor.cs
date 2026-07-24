@@ -1,4 +1,3 @@
-using EasyCore.Ambient;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -11,7 +10,7 @@ namespace EasyCore.UnitOfWork;
 
 /// <summary>
 /// Executes SaveChanges / optional transaction around a method body.
-/// Shared by AspectInjector weave and MVC <see cref="SaveChangesActionFilter"/>.
+/// Shared by Castle <see cref="SaveChangesAsyncInterceptor"/> and MVC <see cref="SaveChangesActionFilter"/>.
 /// </summary>
 internal static class SaveChangesExecutor
 {
@@ -21,7 +20,8 @@ internal static class SaveChangesExecutor
         object[] args,
         Func<object[], object> target,
         Type returnType,
-        SaveChangesAttribute attribute)
+        SaveChangesAttribute attribute,
+        IServiceProvider? services = null)
     {
         if (instance is ControllerBase || IsControllerDeclaringType(method))
             return target(args);
@@ -34,10 +34,30 @@ internal static class SaveChangesExecutor
             return typeof(SaveChangesExecutor)
                 .GetMethod(nameof(ExecuteAsyncTyped), BindingFlags.NonPublic | BindingFlags.Static)!
                 .MakeGenericMethod(resultType)
-                .Invoke(null, new object[] { target, args, attribute })!;
+                .Invoke(null, new object?[] { target, args, attribute, services })!;
         }
 
-        return ExecuteSync(target, args, attribute);
+        if (returnType == typeof(ValueTask)
+            || (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>)))
+        {
+            var resultType = returnType.IsGenericType
+                ? returnType.GenericTypeArguments[0]
+                : typeof(object);
+            var task = typeof(SaveChangesExecutor)
+                .GetMethod(nameof(ExecuteAsyncTyped), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(resultType)
+                .Invoke(null, new object?[] { target, args, attribute, services })!;
+
+            if (!returnType.IsGenericType)
+                return new ValueTask((Task)task);
+
+            return typeof(SaveChangesExecutor)
+                .GetMethod(nameof(ToValueTask), BindingFlags.NonPublic | BindingFlags.Static)!
+                .MakeGenericMethod(resultType)
+                .Invoke(null, new[] { task })!;
+        }
+
+        return ExecuteSync(target, args, attribute, services);
     }
 
     private static bool IsControllerDeclaringType(MethodBase method)
@@ -46,9 +66,13 @@ internal static class SaveChangesExecutor
         return declaring is not null && typeof(ControllerBase).IsAssignableFrom(declaring);
     }
 
-    private static object? ExecuteSync(Func<object[], object> target, object[] args, SaveChangesAttribute attribute)
+    private static object? ExecuteSync(
+        Func<object[], object> target,
+        object[] args,
+        SaveChangesAttribute attribute,
+        IServiceProvider? services)
     {
-        var sp = ResolveServiceProvider();
+        var sp = RequireServices(services);
         var dbContext = ResolveDbContext(sp, attribute);
         var logger = sp.GetService<ILoggerFactory>()?.CreateLogger("EasyCore.UnitOfWork.SaveChanges")
                      ?? NullLogger.Instance;
@@ -93,9 +117,10 @@ internal static class SaveChangesExecutor
     private static async Task<T> ExecuteAsyncTyped<T>(
         Func<object[], object> target,
         object[] args,
-        SaveChangesAttribute attribute)
+        SaveChangesAttribute attribute,
+        IServiceProvider? services)
     {
-        var sp = ResolveServiceProvider();
+        var sp = RequireServices(services);
         var dbContext = ResolveDbContext(sp, attribute);
         var logger = sp.GetService<ILoggerFactory>()?.CreateLogger("EasyCore.UnitOfWork.SaveChanges")
                      ?? NullLogger.Instance;
@@ -143,6 +168,15 @@ internal static class SaveChangesExecutor
         if (invoked is Task<T> typed)
             return await typed.ConfigureAwait(false);
 
+        if (invoked is ValueTask<T> valueTaskTyped)
+            return await valueTaskTyped.ConfigureAwait(false);
+
+        if (invoked is ValueTask valueTask)
+        {
+            await valueTask.ConfigureAwait(false);
+            return default!;
+        }
+
         if (invoked is Task task)
         {
             await task.ConfigureAwait(false);
@@ -151,6 +185,8 @@ internal static class SaveChangesExecutor
 
         return invoked is T direct ? direct : default!;
     }
+
+    private static ValueTask<T> ToValueTask<T>(object taskObj) => new((Task<T>)taskObj);
 
     public static async Task ExecuteAroundActionAsync(
         SaveChangesAttribute attribute,
@@ -196,14 +232,13 @@ internal static class SaveChangesExecutor
         }
     }
 
-    private static IServiceProvider ResolveServiceProvider()
+    private static IServiceProvider RequireServices(IServiceProvider? services)
     {
-        var sp = EasyCoreSharedAmbient.Current;
-        if (sp is not null)
-            return sp;
+        if (services is not null)
+            return services;
 
         throw new InvalidOperationException(
-            "EasyCore ambient IServiceProvider is not set. Call AddEasyCoreUnitOfWork() and ensure the host has started, or set EasyCoreSharedAmbient for the current scope (EventBus does this automatically).");
+            "IServiceProvider was not provided. Castle SaveChangesAsyncInterceptor must pass the DI provider; Ambient is not supported.");
     }
 
     private static DbContext ResolveDbContext(IServiceProvider services, SaveChangesAttribute attribute)
