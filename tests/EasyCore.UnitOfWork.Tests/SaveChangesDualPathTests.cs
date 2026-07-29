@@ -108,3 +108,51 @@ public class SaveChangesDiRegistrationTests
                  && d.ImplementationType == typeof(SaveChangesMvcOptionsSetup));
     }
 }
+
+public class JobStyleUnitOfWorkProxyTests
+{
+    /// <summary>
+    /// Simulates EasyCore.Hangfire JobWrapper&lt;T&gt;: concrete T + IEasyCoreHangfireJob registered;
+    /// wrapper resolves T. [SaveChanges] on the job must still run.
+    /// </summary>
+    [Fact]
+    public async Task Concrete_hangfire_job_style_type_is_proxied_and_saves_changes()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDbContext<UowDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        services.AddTransient<SampleHangfireUowJob>();
+        services.AddTransient<IEasyCoreHangfireJob>(sp => sp.GetRequiredService<SampleHangfireUowJob>());
+        services.AddEasyCoreUnitOfWork(enableAssemblyScanning: false);
+
+        await using var sp = services.BuildServiceProvider();
+        using var scope = sp.CreateScope();
+        var job = scope.ServiceProvider.GetRequiredService<SampleHangfireUowJob>();
+        var db = scope.ServiceProvider.GetRequiredService<UowDbContext>();
+
+        await job.ExecuteAsync();
+
+        Assert.True(db.SaveChangesAsyncCallCount >= 1);
+        Assert.Single(await db.Entities.ToListAsync());
+    }
+}
+
+// Name matters: JobStyleTypeRules treats IEasyCoreHangfireJob as a framework job interface.
+public interface IEasyCoreHangfireJob
+{
+    Task ExecuteAsync(CancellationToken cancellationToken = default);
+}
+
+public class SampleHangfireUowJob : IEasyCoreHangfireJob
+{
+    private readonly UowDbContext _db;
+
+    public SampleHangfireUowJob(UowDbContext db) => _db = db;
+
+    [SaveChanges(typeof(UowDbContext))]
+    public virtual Task ExecuteAsync(CancellationToken cancellationToken = default)
+    {
+        _db.Entities.Add(new UowEntity { Id = Guid.NewGuid(), Name = "hangfire-job" });
+        return Task.CompletedTask;
+    }
+}
