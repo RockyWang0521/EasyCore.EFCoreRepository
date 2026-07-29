@@ -73,9 +73,22 @@ public static class DataBaseUnitOfWork
             type = type.GetGenericTypeDefinition();
 
         var ns = type.Namespace ?? string.Empty;
-        return ns.StartsWith("System", StringComparison.Ordinal)
-               || ns.StartsWith("Microsoft", StringComparison.Ordinal)
-               || ns.StartsWith("Castle", StringComparison.Ordinal);
+        if (ns.StartsWith("System", StringComparison.Ordinal)
+            || ns.StartsWith("Microsoft", StringComparison.Ordinal)
+            || ns.StartsWith("Castle", StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        // Quartz / Hangfire job marker interfaces.
+        // EasyCore.Quartz / EasyCore.Hangfire JobWrapper<T> resolve the concrete job type T from DI,
+        // so these interfaces must not become the preferred Castle proxy service registration.
+        if (JobStyleTypeRules.IsJobStyleInterfaceName(type.Name))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<Assembly> GetAutoScanAssemblies()

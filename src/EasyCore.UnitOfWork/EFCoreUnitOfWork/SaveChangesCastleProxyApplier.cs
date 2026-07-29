@@ -29,9 +29,12 @@ internal static class SaveChangesCastleProxyApplier
                 continue;
 
             // Prefer interface service registrations; skip pure concrete when an interface mapping exists.
+            // Exception: Quartz/Hangfire JobWrapper<T> injects concrete T — that descriptor must be proxied
+            // so [SaveChanges] on the job type/method still runs when the wrapper calls T.Execute*.
             var serviceType = descriptor.ServiceType;
             if (!serviceType.IsInterface
                 && serviceType == impl
+                && !JobStyleTypeRules.IsJobStyleImplementation(impl)
                 && snapshots.Any(d =>
                     d.ServiceType.IsInterface
                     && d.ServiceType.IsAssignableFrom(impl)
